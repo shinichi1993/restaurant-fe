@@ -52,6 +52,10 @@ api.interceptors.response.use(
     if (error.response.status !== 401) {
       return Promise.reject(error);
     }
+    // ❗Nếu lỗi 401 xảy ra ở login → không logout, không redirect
+    if (originalRequest.url.includes("/api/auth/login")) {
+        return Promise.reject(error);
+    }
 
     // Nếu chính request /api/auth/refresh bị 401
     // → KHÔNG được retry nữa, logout luôn để tránh vòng lặp vô hạn
