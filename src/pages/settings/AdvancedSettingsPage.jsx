@@ -45,7 +45,9 @@ const TAB_KEYS = {
     "restaurant.phone",
     "restaurant.tax_id",
   ],
-  INVOICE: ["vat.rate"],
+  INVOICE: ["vat.rate",
+    "invoice.print_layout", // 🔵 thêm key layout in hóa đơn
+  ],
   LOYALTY: [
     "loyalty.enabled",
     "loyalty.earn_rate",
@@ -323,6 +325,9 @@ const AdvancedSettingsPage = () => {
                   label: "Hóa đơn & Thuế",
                   children: (
                     <>
+                      {/* ================================================================== */}
+                      {/*  CẤU HÌNH VAT                                                    */}
+                      {/* ================================================================== */}
                       <Form.Item
                         label="Thuế VAT mặc định (%)"
                         name="vat.rate"
@@ -334,6 +339,33 @@ const AdvancedSettingsPage = () => {
                           step={0.5}
                           style={{ width: "100%" }}
                           placeholder="Nhập % VAT"
+                        />
+                      </Form.Item>
+                      {/* ================================================================== */}
+                      {/*  🔵 CẤU HÌNH LAYOUT IN HÓA ĐƠN (A5 / THERMAL)                      */}
+                      {/* ================================================================== */}
+                      {/* 
+                        - Liên kết với key invoice.print_layout trong bảng system_setting
+                        - FE hiển thị dạng Select để chọn layout in hóa đơn
+                        - BE đọc giá trị này dùng trong Export PDF Factory
+                        - Giá trị hợp lệ:
+                            + "A5"        → hóa đơn A5 dọc
+                            + "THERMAL"   → hóa đơn giấy nhiệt 80mm
+                      */}
+                      <Form.Item
+                        label="Layout in hóa đơn"
+                        name="invoice.print_layout"
+                        tooltip="Chọn kiểu in hóa đơn: A5 (quán lớn) hoặc giấy nhiệt 80mm."
+                        rules={[
+                          { required: true, message: "Vui lòng chọn layout in hóa đơn." },
+                        ]}
+                      >
+                        <Select
+                          placeholder="Chọn layout in"
+                          options={[
+                            { label: "A5 – Khổ A5 dọc", value: "A5" },
+                            { label: "Thermal – Giấy nhiệt 80mm", value: "THERMAL" },
+                          ]}
                         />
                       </Form.Item>
                       {renderSaveButton("INVOICE")}

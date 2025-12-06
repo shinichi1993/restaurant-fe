@@ -31,10 +31,13 @@ import {
   message,
 } from "antd";
 
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, DownloadOutlined, PrinterOutlined } from "@ant-design/icons";
+
 import dayjs from "dayjs";
-import { getInvoiceDetail } from "../../api/invoiceApi";
 import { fetchSettingsByGroup } from "../../api/settingApi"; // gọi API cấu hình hệ thống
+
+// API xuất PDF
+import { getInvoiceDetail, exportInvoicePdf, exportInvoiceHtml } from "../../api/invoiceApi";
 
 const { Title } = Typography;
 
@@ -103,6 +106,45 @@ export default function InvoiceDetailPage() {
     }
   };
 
+    // -------------------------------------------------------------------
+  // Xử lý IN HÓA ĐƠN ra máy POS
+  // -------------------------------------------------------------------
+  const handlePrintInvoice = async () => {
+    if (!invoiceId) {
+      message.error("Không tìm thấy mã hóa đơn để in.");
+      return;
+    }
+
+    try {
+      // 1) Gọi BE lấy HTML hóa đơn
+      const html = await exportInvoiceHtml(invoiceId);
+
+      // 2) Mở cửa sổ mới để in
+      const printWindow = window.open("", "_blank");
+
+      if (!printWindow) {
+        message.error("Trình duyệt chặn popup, vui lòng cho phép mở cửa sổ mới.");
+        return;
+      }
+
+      // Ghi HTML vào cửa sổ mới
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+
+      // 3) Đợi DOM render xong rồi gọi print
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+        // Có thể KHÔNG đóng để user xem lại, hoặc đóng tùy ý:
+        // printWindow.close();
+      }, 300);
+    } catch (error) {
+      console.error("Lỗi in hóa đơn:", error);
+      message.error("In hóa đơn thất bại, vui lòng thử lại.");
+    }
+  };
+
   useEffect(() => {
     if (invoiceId) {
       loadInvoice();
@@ -110,6 +152,53 @@ export default function InvoiceDetailPage() {
     // Load thông tin nhà hàng 1 lần khi mở trang
     loadRestaurantInfo();
   }, [invoiceId]);
+
+  // -------------------------------------------------------------------
+  // HÀM XUẤT PDF HÓA ĐƠN
+  // -------------------------------------------------------------------
+  // Quy trình:
+  //  1. FE gọi API exportInvoicePdf(invoice.id)
+  //  2. Nhận blob + filename từ BE
+  //  3. FE tạo URL tạm → trigger download
+  //  4. Dọn URL tạm tránh leak bộ nhớ
+  // -------------------------------------------------------------------
+  const handleExportPdf = async () => {
+    try {
+      message.loading({
+        content: "Đang xuất PDF...",
+        key: "exportInvoicePdf",
+        duration: 0,
+      });
+
+      // Gọi API BE lấy file PDF dạng blob
+      const { blob, filename } = await exportInvoicePdf(invoice.id);
+
+      // Tạo URL tạm từ blob
+      const url = window.URL.createObjectURL(blob);
+
+      // Tạo thẻ <a> để tải file
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename || "invoice.pdf";
+      document.body.appendChild(link);
+      link.click();
+
+      // Dọn dẹp
+      window.URL.revokeObjectURL(url);
+      link.remove();
+
+      message.success({
+        content: "Xuất PDF thành công!",
+        key: "exportInvoicePdf",
+      });
+    } catch (err) {
+      console.error(err);
+      message.error({
+        content: "Xuất PDF thất bại!",
+        key: "exportInvoicePdf",
+      });
+    }
+  };
 
   // -------------------------------------------------------------------
   // Cấu hình cột bảng món ăn
@@ -168,9 +257,34 @@ export default function InvoiceDetailPage() {
           {headerTitle}
         </Title>
 
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
-          Quay lại
-        </Button>
+        <Space>
+          {/* ---------------------------------------------------- */}
+          {/* NÚT XUẤT PDF – gọi handleExportPdf()                 */}
+          {/* ---------------------------------------------------- */}
+          <Button
+            type="primary"
+            variant="solid"
+            icon={<DownloadOutlined />}
+            onClick={handleExportPdf}
+            disabled={!invoice}
+          >
+            Xuất PDF
+          </Button>
+
+          {/* Nút IN HÓA ĐƠN ra máy POS */}
+          <Button
+            type="primary"
+            icon={<PrinterOutlined />}
+            onClick={handlePrintInvoice}
+          >
+            In hóa đơn
+          </Button>
+
+          {/* Nút quay lại */}
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
+            Quay lại
+          </Button>
+        </Space>
       </Space>
 
       {/* =============================== */}
