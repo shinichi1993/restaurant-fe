@@ -12,7 +12,7 @@
 // Kỹ thuật:
 //  - Dùng Ant Design: Tabs, Form, Input, InputNumber, Switch, Select, Button, Card
 //  - Sử dụng 1 Form chung, mỗi Tab sử dụng một nhóm field khác nhau
-//  - Khi bấm "Lưu [TAB]" → chỉ gửi các settingKey thuộc tab đó lên BE
+//  - Khi bấm "Lưu cấu hình" ở từng tab → chỉ gửi các settingKey thuộc tab đó
 // ---------------------------------------------------------------------
 
 import { useEffect, useMemo, useState } from "react";
@@ -30,14 +30,16 @@ import {
   message,
   Typography,
 } from "antd";
-import {
-  fetchAllSettings,
-  updateSettings,
-} from "../../api/settingApi";
+import { fetchAllSettings, updateSettings } from "../../api/settingApi";
 
 const { Title, Text } = Typography;
 
-// Danh sách key theo từng tab để dễ map & gửi payload
+// =====================================================================
+// 1. KHAI BÁO DANH SÁCH KEY THEO TỪNG TAB
+// ---------------------------------------------------------------------
+//  - Mục đích: khi lưu từng tab, FE sẽ chỉ build payload từ group key đó.
+//  - Lưu ý: phải đồng bộ với các key trong bảng system_setting bên BE.
+// =====================================================================
 const TAB_KEYS = {
   RESTAURANT: [
     "restaurant.name",
@@ -45,8 +47,9 @@ const TAB_KEYS = {
     "restaurant.phone",
     "restaurant.tax_id",
   ],
-  INVOICE: ["vat.rate",
-    "invoice.print_layout", // 🔵 thêm key layout in hóa đơn
+  INVOICE: [
+    "vat.rate",
+    "invoice.print_layout", // Layout in hóa đơn (A5 / THERMAL)
   ],
   LOYALTY: [
     "loyalty.enabled",
@@ -55,10 +58,13 @@ const TAB_KEYS = {
     "loyalty.min_redeem_point",
   ],
   POS: [
-    "pos.auto_send_kitchen",
-    "pos.allow_cancel_item",
-    "pos.allow_edit_after_send",
-    "pos.refresh_interval_sec",
+    "pos.auto_send_kitchen",                // Tự động gửi order xuống bếp
+    "pos.allow_cancel_item",               // Cho phép hủy món sau khi order
+    "pos.allow_edit_after_send",           // Cho phép sửa số lượng món sau khi gửi bếp
+    "pos.refresh_interval_sec",            // Thời gian auto refresh POS (giây)
+    "pos.auto_order_serving_on_item_cooking", // 🔵 Tự động chuyển order → SERVING khi món bắt đầu COOKING
+    "pos.simple_pos_mode",                     // 🔵 Bật chế độ POS đơn giản (Simple POS)
+    "pos.simple_pos_require_table",            // 🔵 Trong Simple POS: bắt buộc chọn bàn hay không
   ],
   DISCOUNT_REPORT: [
     "discount.default_percent",
@@ -83,12 +89,15 @@ const AdvancedSettingsPage = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // --------------------------------------------------------------
+  // 2. MAP DỮ LIỆU TỪ BE → FORM
+  // --------------------------------------------------------------
   /**
-   * Hàm convert list setting từ BE → object cho Form initialValues
-   * -------------------------------------------------------------
+   * Hàm convert list setting từ BE → object values cho Form
+   * -------------------------------------------------------
    * - STRING  → giữ nguyên string
-   * - NUMBER  → convert sang number (dùng parseFloat)
-   * - BOOLEAN → convert sang boolean
+   * - NUMBER  → convert sang number (Number(settingValue))
+   * - BOOLEAN → convert "true"/"false" → boolean
    */
   const mapSettingsToFormValues = (list) => {
     const values = {};
@@ -101,10 +110,9 @@ const AdvancedSettingsPage = () => {
         const num = settingValue !== null ? Number(settingValue) : undefined;
         values[settingKey] = Number.isNaN(num) ? undefined : num;
       } else if (valueType === "BOOLEAN") {
-        // BE lưu là "true"/"false" → FE convert sang boolean
         values[settingKey] = settingValue?.toLowerCase() === "true";
       } else {
-        // STRING / JSON: giữ nguyên string
+        // STRING / JSON
         values[settingKey] = settingValue ?? "";
       }
     });
@@ -138,10 +146,9 @@ const AdvancedSettingsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /**
-   * Lấy ra danh sách SystemSetting theo settingKey (để lấy valueType)
-   * Dùng useMemo để tránh tính lại nhiều lần.
-   */
+  // --------------------------------------------------------------
+  // 3. MAP SYSTEM_SETTING → MAP BY KEY ĐỂ TRA CỨU valueType (nếu cần)
+  // --------------------------------------------------------------
   const settingMapByKey = useMemo(() => {
     const map = {};
     settings.forEach((s) => {
@@ -150,11 +157,14 @@ const AdvancedSettingsPage = () => {
     return map;
   }, [settings]);
 
+  // --------------------------------------------------------------
+  // 4. BUILD PAYLOAD CẬP NHẬT SETTING CHO MỖI TAB
+  // --------------------------------------------------------------
   /**
    * Hàm build payload gửi lên BE khi lưu 1 nhóm setting.
    * ---------------------------------------------------
    * - groupKeys: danh sách settingKey của tab
-   * - values: toàn bộ values của form hiện tại
+   * - values: toàn bộ values hiện tại của form
    */
   const buildUpdatePayload = (groupKeys, values) => {
     const payload = [];
@@ -191,14 +201,14 @@ const AdvancedSettingsPage = () => {
   /**
    * Hàm xử lý lưu cấu hình cho 1 tab.
    * --------------------------------
-   * - tab: key của TAB_KEYS (RESTAURANT, INVOICE...)
+   * - tabKey: key trong TAB_KEYS (RESTAURANT, INVOICE, POS...)
    */
   const handleSaveTab = async (tabKey) => {
     try {
       const groupKeys = TAB_KEYS[tabKey];
       if (!groupKeys || groupKeys.length === 0) return;
 
-      // Lấy toàn bộ value hiện tại từ form
+      // Lấy toàn bộ value hiện tại từ form (kèm validate)
       const values = await form.validateFields();
 
       const payload = buildUpdatePayload(groupKeys, values);
@@ -211,11 +221,10 @@ const AdvancedSettingsPage = () => {
       await updateSettings(payload);
       message.success("Lưu cấu hình thành công.");
 
-      // Reload lại setting để đồng bộ với BE (updatedAt, valueType...)
+      // Reload lại settings để đồng bộ với BE
       await loadSettings();
     } catch (error) {
       console.error("Lỗi lưu cấu hình:", error);
-      // Nếu BE trả message chi tiết, có thể lấy error.response.data.message
       message.error("Lưu cấu hình thất bại, vui lòng kiểm tra lại.");
     } finally {
       setSaving(false);
@@ -223,14 +232,13 @@ const AdvancedSettingsPage = () => {
   };
 
   /**
-   * Render nút lưu cho từng tab.
-   * ----------------------------
-   * - Đặt bên dưới nhóm field, rõ ràng từng khu vực.
+   * Render nút lưu cho từng tab (dùng chung cho tất cả).
    */
   const renderSaveButton = (tabKey) => (
     <div style={{ marginTop: 16 }}>
       <Button
         type="primary"
+        variant="solid" // Rule 29 – dùng variant, tránh bordered cũ
         onClick={() => handleSaveTab(tabKey)}
         loading={saving}
       >
@@ -239,9 +247,18 @@ const AdvancedSettingsPage = () => {
     </div>
   );
 
+  // -----------------------------------------------------------------
+  // 5. DÙNG useWatch ĐỂ THEO DÕI TRẠNG THÁI SIMPLE POS MODE
+  // -----------------------------------------------------------------
+  //  - Mục đích: nếu "pos.simple_pos_mode" = false → ẩn field con
+  //    "pos.simple_pos_require_table".
+  //  - Khi bật Simple POS Mode → hiển thị thêm config con.
+  // -----------------------------------------------------------------
+  const simplePosMode = Form.useWatch("pos.simple_pos_mode", form);
+
   return (
     <Card
-      // Rule 29: dùng variant thay vì bordered
+      // Rule 29: dùng variant thay cho bordered
       variant="bordered"
       style={{ width: "100%" }}
     >
@@ -272,11 +289,14 @@ const AdvancedSettingsPage = () => {
           <Form
             form={form}
             layout="vertical"
-            // Không dùng initialValues ở đây vì đã setFieldsValue sau khi load
+            // Không dùng initialValues trực tiếp vì đã setFieldsValue sau khi load
           >
             <Tabs
               defaultActiveKey="RESTAURANT"
               items={[
+                // ======================================================
+                // TAB 1: THÔNG TIN NHÀ HÀNG
+                // ======================================================
                 {
                   key: "RESTAURANT",
                   label: "Thông tin nhà hàng",
@@ -309,10 +329,7 @@ const AdvancedSettingsPage = () => {
                         <Input placeholder="Nhập số điện thoại" />
                       </Form.Item>
 
-                      <Form.Item
-                        label="Mã số thuế"
-                        name="restaurant.tax_id"
-                      >
+                      <Form.Item label="Mã số thuế" name="restaurant.tax_id">
                         <Input placeholder="Nhập mã số thuế (nếu có)" />
                       </Form.Item>
 
@@ -320,14 +337,16 @@ const AdvancedSettingsPage = () => {
                     </>
                   ),
                 },
+
+                // ======================================================
+                // TAB 2: HÓA ĐƠN & THUẾ
+                // ======================================================
                 {
                   key: "INVOICE",
                   label: "Hóa đơn & Thuế",
                   children: (
                     <>
-                      {/* ================================================================== */}
-                      {/*  CẤU HÌNH VAT                                                    */}
-                      {/* ================================================================== */}
+                      {/* CẤU HÌNH VAT MẶC ĐỊNH */}
                       <Form.Item
                         label="Thuế VAT mặc định (%)"
                         name="vat.rate"
@@ -341,23 +360,24 @@ const AdvancedSettingsPage = () => {
                           placeholder="Nhập % VAT"
                         />
                       </Form.Item>
-                      {/* ================================================================== */}
-                      {/*  🔵 CẤU HÌNH LAYOUT IN HÓA ĐƠN (A5 / THERMAL)                      */}
-                      {/* ================================================================== */}
-                      {/* 
+
+                      {/* CẤU HÌNH LAYOUT IN HÓA ĐƠN (A5 / THERMAL) */}
+                      {/*
                         - Liên kết với key invoice.print_layout trong bảng system_setting
-                        - FE hiển thị dạng Select để chọn layout in hóa đơn
-                        - BE đọc giá trị này dùng trong Export PDF Factory
+                        - BE dùng giá trị này để chọn factory export PDF tương ứng
                         - Giá trị hợp lệ:
-                            + "A5"        → hóa đơn A5 dọc
-                            + "THERMAL"   → hóa đơn giấy nhiệt 80mm
+                            + "A5"      → hóa đơn A5 dọc
+                            + "THERMAL" → hóa đơn giấy nhiệt 80mm
                       */}
                       <Form.Item
                         label="Layout in hóa đơn"
                         name="invoice.print_layout"
                         tooltip="Chọn kiểu in hóa đơn: A5 (quán lớn) hoặc giấy nhiệt 80mm."
                         rules={[
-                          { required: true, message: "Vui lòng chọn layout in hóa đơn." },
+                          {
+                            required: true,
+                            message: "Vui lòng chọn layout in hóa đơn.",
+                          },
                         ]}
                       >
                         <Select
@@ -368,10 +388,15 @@ const AdvancedSettingsPage = () => {
                           ]}
                         />
                       </Form.Item>
+
                       {renderSaveButton("INVOICE")}
                     </>
                   ),
                 },
+
+                // ======================================================
+                // TAB 3: LOYALTY
+                // ======================================================
                 {
                   key: "LOYALTY",
                   label: "Loyalty (Tích điểm)",
@@ -425,40 +450,50 @@ const AdvancedSettingsPage = () => {
                     </>
                   ),
                 },
+
+                // ======================================================
+                // TAB 4: CẤU HÌNH POS
+                // ======================================================
                 {
                   key: "POS",
                   label: "Cấu hình POS",
                   children: (
                     <>
+                      {/* 1. TỰ ĐỘNG GỬI ORDER XUỐNG BẾP */}
                       <Form.Item
                         label="Tự động gửi order xuống bếp"
                         name="pos.auto_send_kitchen"
                         valuePropName="checked"
-                        tooltip="Nếu bật: sau khi tạo order, hệ thống sẽ tự gửi món xuống bếp."
+                        tooltip="Nếu bật: sau khi tạo order, hệ thống sẽ tự chuyển món sang trạng thái 'Đã gửi bếp'."
                       >
                         <Switch />
                       </Form.Item>
 
+                      {/* 2. CHO PHÉP HỦY MÓN SAU KHI ORDER */}
                       <Form.Item
                         label="Cho phép hủy món sau khi order"
                         name="pos.allow_cancel_item"
                         valuePropName="checked"
+                        tooltip="Nếu tắt: nhân viên sẽ không thể hủy món (BE cũng sẽ chặn)."
                       >
                         <Switch />
                       </Form.Item>
 
+                      {/* 3. CHO PHÉP SỬA SỐ LƯỢNG SAU KHI GỬI BẾP */}
                       <Form.Item
                         label="Cho phép sửa số lượng món sau khi gửi bếp"
                         name="pos.allow_edit_after_send"
                         valuePropName="checked"
+                        tooltip="Nếu bật: có thể chỉnh sửa/giảm số lượng cả khi món đã ở trạng thái 'Đã gửi bếp'. Nếu tắt: chỉ cho gọi thêm, không được giảm."
                       >
                         <Switch />
                       </Form.Item>
 
+                      {/* 4. THỜI GIAN AUTO REFRESH POS */}
                       <Form.Item
                         label="Thời gian refresh POS (giây)"
                         name="pos.refresh_interval_sec"
-                        tooltip="Khoảng thời gian tự động reload dữ liệu trên màn hình POS."
+                        tooltip="Khoảng thời gian tự động reload dữ liệu trên màn hình POS Table. 0 = tắt auto refresh."
                       >
                         <InputNumber
                           min={0}
@@ -468,10 +503,46 @@ const AdvancedSettingsPage = () => {
                         />
                       </Form.Item>
 
+                      {/* 5. AUTO ORDER → SERVING KHI MÓN BẮT ĐẦU COOKING */}
+                      <Form.Item
+                        label="Tự chuyển order sang SERVING khi có món bắt đầu COOKING"
+                        name="pos.auto_order_serving_on_item_cooking"
+                        valuePropName="checked"
+                        tooltip="Nếu bật: khi bất kỳ món nào trong order chuyển sang trạng thái 'Đang nấu' (COOKING), hệ thống sẽ tự chuyển trạng thái order từ NEW → SERVING (dùng chủ yếu cho KitchenPage)."
+                      >
+                        <Switch />
+                      </Form.Item>
+
+                      {/* 6. SIMPLE POS MODE – CHẾ ĐỘ POS ĐƠN GIẢN */}
+                      <Form.Item
+                        label="Kích hoạt chế độ POS đơn giản (Simple POS Mode)"
+                        name="pos.simple_pos_mode"
+                        valuePropName="checked"
+                        tooltip="Chế độ dành cho quán nhỏ/takeaway: luồng thao tác tối giản, nhân viên bếp có thể vừa order vừa thanh toán nhanh."
+                      >
+                        <Switch />
+                      </Form.Item>
+
+                      {/* 6.1. SIMPLE POS – CÓ BẮT BUỘC CHỌN BÀN HAY KHÔNG */}
+                      {simplePosMode && (
+                        <Form.Item
+                          label="Trong Simple POS: bắt buộc chọn bàn khi order"
+                          name="pos.simple_pos_require_table"
+                          valuePropName="checked"
+                          tooltip="Nếu bật: khi ở Simple POS Mode, nhân viên luôn phải chọn bàn trước khi order. Nếu tắt: có thể order không gắn bàn (phù hợp take-away)."
+                        >
+                          <Switch />
+                        </Form.Item>
+                      )}
+
                       {renderSaveButton("POS")}
                     </>
                   ),
                 },
+
+                // ======================================================
+                // TAB 5: GIẢM GIÁ & BÁO CÁO
+                // ======================================================
                 {
                   key: "DISCOUNT_REPORT",
                   label: "Giảm giá & Báo cáo",
@@ -506,7 +577,7 @@ const AdvancedSettingsPage = () => {
                         label="Cho phép dùng giảm giá mặc định cùng voucher"
                         name="discount.allow_with_voucher"
                         valuePropName="checked"
-                        tooltip="Nếu tắt, hệ thống sẽ không áp dụng giảm giá mặc định cho bất kỳ hóa đơn nào."
+                        tooltip="Nếu tắt, hệ thống sẽ không áp dụng giảm giá mặc định khi hóa đơn đã dùng voucher."
                       >
                         <Switch />
                       </Form.Item>

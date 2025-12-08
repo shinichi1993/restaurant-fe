@@ -19,6 +19,23 @@
 import api from "./axiosConfig";
 
 // =====================================================================
+// 0. LẤY THÔNG TIN 1 BÀN THEO ID
+// GET /api/tables/{id}
+// ---------------------------------------------------------------------
+// Trả về:
+//   {
+//     id: number,
+//     name: string,
+//     capacity: number,
+//     status: "AVAILABLE" | "OCCUPIED" | ...
+//   }
+// =====================================================================
+export const getTableDetail = async (id) => {
+  const res = await api.get(`/api/tables/${id}`);
+  return res.data;
+};
+
+// =====================================================================
 // 1. LẤY DANH SÁCH BÀN
 // GET /api/tables
 // ---------------------------------------------------------------------
@@ -133,3 +150,13 @@ export const updateTableStatus = async (data) => {
   const res = await api.post("/api/tables/status", data);
   return res.data;
 };
+
+/**
+ * API riêng cho POS TABLE PAGE.
+ * ------------------------------------------------------------
+ * Gọi BE: GET /api/tables/pos-status
+ * Trả về: List<PosTableStatusResponse>
+ */
+export function fetchPosTableStatuses() {
+  return api.get("/api/tables/pos-status");
+}

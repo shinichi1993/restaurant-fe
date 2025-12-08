@@ -18,9 +18,10 @@ import { useNavigate } from "react-router-dom";
 // TODO: Import api lấy danh sách bàn từ module hiện tại
 // Tên hàm dưới đây chỉ là gợi ý, bạn sửa lại theo đúng file api của bạn.
 // Ví dụ: nếu ở module 16 đang dùng fetchTables(), thì đổi lại cho khớp.
-import { fetchTables as apiFetchTables } from "../../api/tableApi";
-import { fetchAllSettings } from "../../api/settingApi"; // ✅ Thêm dòng này
+import { fetchPosTableStatuses } from "../../api/tableApi";
+import { fetchAllSettings } from "../../api/settingApi";
 import MotionWrapper from "../../components/common/MotionWrapper";
+import TableCard from "./TableCard";
 
 /**
  * Hàm map status bàn sang màu Tag của antd
@@ -85,18 +86,19 @@ const PosTablePage = () => {
   // ----------------------------------------------------------
   const loadTables = async () => {
     try {
-        setLoading(true);
+      setLoading(true);
 
-        const res = await apiFetchTables(); // 🔥 gọi đúng API thật
+      // Gọi API mới /api/tables/pos-status
+      const res = await fetchPosTableStatuses();
 
-        const data = Array.isArray(res) ? res : res?.content || [];
-        setTables(data);
-
+      // BE trả về List<PosTableStatusResponse> → res.data là array
+      const data = res.data || [];
+      setTables(data);
     } catch (err) {
-        console.error("❌ Lỗi khi tải danh sách bàn:", err);
-        message.error("Không tải được danh sách bàn");
+      console.error("❌ Lỗi khi tải danh sách bàn (POS):", err);
+      message.error("Không tải được danh sách bàn POS");
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -165,14 +167,15 @@ const PosTablePage = () => {
   // Hàm xử lý khi chọn một bàn
   // ----------------------------------------------------------
   const handleSelectTable = (table) => {
-    // Nếu bàn đang bị DISABLED thì không cho vào order
     if (table.status === "DISABLED") {
       message.warning("Bàn này đang tạm ngưng, không thể order");
       return;
     }
 
-    // Điều hướng sang màn order của bàn đó
-    navigate(`/pos/table/${table.id}/order`);
+    // Dùng tableId từ PosTableStatusResponse
+    navigate(`/pos/table/${table.tableId}/order`, {
+      state: { tableName: table.tableName },
+    });
   };
 
   // ----------------------------------------------------------
@@ -188,7 +191,7 @@ const PosTablePage = () => {
   // ----------------------------------------------------------
   const filteredTables = useMemo(() => {
     return tables.filter((table) => {
-      // Filter theo trạng thái
+      // Filter theo trạng thái bàn
       if (statusFilter !== "ALL" && table.status !== statusFilter) {
         return false;
       }
@@ -196,8 +199,8 @@ const PosTablePage = () => {
       // Filter theo từ khoá tìm kiếm
       if (searchKeyword?.trim()) {
         const keyword = searchKeyword.trim().toLowerCase();
-        const name = (table.name || "").toLowerCase();
-        const code = (table.code || "").toLowerCase();
+        const name = (table.tableName || "").toLowerCase();
+        const code = (table.orderCode || "").toLowerCase(); // cho phép tìm theo mã order luôn
         return name.includes(keyword) || code.includes(keyword);
       }
 
@@ -229,7 +232,7 @@ const PosTablePage = () => {
   return (
     <MotionWrapper>
     <>
-        <div>
+      <div>
         {/* ------------------------------------------------------
             Khu vực filter phía trên
         ------------------------------------------------------ */}
@@ -296,61 +299,37 @@ const PosTablePage = () => {
             Grid hiển thị danh sách bàn
         ------------------------------------------------------ */}
         <Row gutter={[16, 16]}>
-            {filteredTables.map((table) => (
+          {filteredTables.map((table) => (
             <Col
-                key={table.id}
-                xs={12}  // 2 cột trên màn hình nhỏ (tablet dọc)
-                sm={8}   // 3 cột
-                md={6}   // 4 cột trên màn hình lớn hơn
-                lg={4}
+              key={table.tableId}
+              xs={12}
+              sm={8}
+              md={6}
+              lg={4}
             >
-                <Card
-                // Dùng variant theo Rule 29
-                variant="outlined"
-                // Card to hơn bình thường cho dễ bấm
-                style={{
-                    minHeight: 120,
-                    cursor: table.status === "DISABLED" ? "not-allowed" : "pointer",
-                    opacity: table.status === "DISABLED" ? 0.6 : 1,
-                }}
+              <TableCard
+                data={table}
                 onClick={() => handleSelectTable(table)}
-                >
-                {/* Tên/mã bàn */}
-                <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
-                    {table.name || table.code || `Bàn #${table.id}`}
-                </div>
-
-                {/* Trạng thái bàn */}
-                <Tag color={getStatusColor(table.status)}>
-                    {getStatusLabel(table.status)}
-                </Tag>
-
-                {/* Có thể hiển thị thêm thông tin khác nếu có:
-                    - Số khách hiện tại
-                    - Ghi chú
-                    - Mã QR ...
-                */}
-                </Card>
+              />
             </Col>
-            ))}
+          ))}
 
-            {/* Trường hợp không có bàn nào sau filter */}
-            {filteredTables.length === 0 && (
+          {filteredTables.length === 0 && (
             <Col span={24}>
-                <div
+              <div
                 style={{
-                    textAlign: "center",
-                    padding: "40px 0",
-                    fontSize: 16,
-                    opacity: 0.8,
+                  textAlign: "center",
+                  padding: "40px 0",
+                  fontSize: 16,
+                  opacity: 0.8,
                 }}
-                >
+              >
                 Không có bàn nào phù hợp với bộ lọc hiện tại
-                </div>
+              </div>
             </Col>
-            )}
+          )}
         </Row>
-        </div>
+      </div>
     </>
     </MotionWrapper>
   );

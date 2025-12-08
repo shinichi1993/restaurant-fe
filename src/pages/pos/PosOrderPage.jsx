@@ -1,378 +1,556 @@
 // src/pages/pos/PosOrderPage.jsx
-// ------------------------------------------------------------------
-// PosOrderPage – Trang order món cho 1 bàn trong chế độ POS Tablet
+// ============================================================================
+// PosOrderPage – Màn hình gọi món cho 1 bàn (POS Tablet - Layout hiện đại)
+// ----------------------------------------------------------------------------
+// Chức năng chính:
+//  - Bên trái:
+//      + Hiển thị danh sách món dạng card (grid 3–4 cột, dễ bấm)
+//      + Filter theo "nhóm" (category) nếu có dữ liệu category trong Dish
+//      + Tìm kiếm theo tên món
+//  - Bên phải:
+//      + Hiển thị giỏ hàng (cart) hiện tại của bàn
+//      + Cho tăng/giảm số lượng, ghi chú, xoá món (CHỈ sửa LOCAL, chưa gọi BE)
+//      + Tính tổng tiền theo Rule 26 (giá BigDecimal → FE number)
+//      + Nút "Tiếp tục" → chuyển sang màn PosOrderSummaryPage
 //
-// Chức năng:
-//  - Load danh mục món (categories) + danh sách món (dishes)
-//  - Load order hiện tại của bàn (nếu tồn tại) → đổ vào giỏ hàng
-//  - Cho phép chọn món, tăng/giảm số lượng
-//  - Tính tổng tiền theo Rule 26 (định dạng BigDecimal → FE dùng number)
-//  - Điều hướng sang trang Summary để gửi order
+// Dữ liệu sử dụng:
+//  - API món ăn: getDishes() từ dishApi
+//  - API order theo bàn: getOrderByTableId(tableId) từ orderApi
+//      → Nếu bàn đã có order mở (NEW/SERVING) → load món vào cart
+//      → Nếu chưa có → cart rỗng, orderId = null
 //
-// UI chia 2 cột lớn:
-//  - Bên trái: menu món, filter theo category
-//  - Bên phải: giỏ hàng (cart)
-// ------------------------------------------------------------------
+// Lưu ý Option 1 (POS + Case A):
+//  - TRÊN MÀN HÌNH NÀY KHÔNG GỌI POST/PUT order
+//  - Tất cả thay đổi cart chỉ là state tạm thời
+//  - Khi bấm "Gửi Order" ở màn Summary mới gửi payload lên BE
+//  - Quy tắc khóa theo Case A:
+//      + Nếu 1 món có bất kỳ item ở trạng thái
+//          SENT_TO_KITCHEN / COOKING / DONE
+//        → TOÀN BỘ dòng của món đó (kể cả NEW) bị khóa (không sửa/xóa)
+//      + Chỉ cho phép GỌI THÊM (add món) cho dishId đó
+//      + FE đảm bảo không gửi newQty < currentTotalQty cho món có item locked
+// ============================================================================
 
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Row,
   Col,
   Card,
   Button,
-  Select,
   Input,
-  List,
-  InputNumber,
+  Segmented,
+  Typography,
   Space,
   message,
   Spin,
+  Empty,
 } from "antd";
-import { useParams, useNavigate } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-// TODO: Đổi các api này cho đúng với API project hiện tại
-import { getCategories } from "../../api/categoryApi";
 import { getDishes } from "../../api/dishApi";
 import { getOrderByTableId } from "../../api/orderApi";
+
 import MotionWrapper from "../../components/common/MotionWrapper";
+import CartItem from "./CartItem";
 
-const PosOrderPage = () => {
-  // Lấy tableId từ URL
+const { Text } = Typography;
+
+// ------------------------------------------------------------
+// Hàm hỗ trợ: lấy tên nhóm (category) từ record món
+// ------------------------------------------------------------
+const getCategoryNameFromDish = (dish) => {
+  if (!dish) return "Khác";
+  if (dish.categoryName) return dish.categoryName;
+  if (dish.category && dish.category.name) return dish.category.name;
+  return "Khác";
+};
+
+// ------------------------------------------------------------
+// Hàm tạo key local cho từng dòng cart
+//  - Dùng để phân biệt các dòng có cùng dishId
+//  - Không phụ thuộc vào id trên BE
+// ------------------------------------------------------------
+const createLineId = (prefix = "line") =>
+  `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+export default function PosOrderPage() {
+  // Lấy tableId từ URL: /pos/table/:tableId/order
   const { tableId } = useParams();
-
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Data từ API
-  const [categories, setCategories] = useState([]);
-  const [dishes, setDishes] = useState([]);
+  // Nếu từ PosTablePage truyền state { tableName } thì dùng, không thì fallback
+  const tableName = location.state?.tableName || `Bàn ${tableId}`;
 
-  // Bộ lọc danh mục
-  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  // ------------------------------------------------------------
+  // STATE CHÍNH
+  // ------------------------------------------------------------
+  const [dishes, setDishes] = useState([]); // Danh sách món từ BE
+  const [loadingDishes, setLoadingDishes] = useState(false);
 
-  // Giỏ hàng (cart)
-  // Format: [{ dishId, name, price, quantity }]
+  const [orderId, setOrderId] = useState(null); // Nếu bàn đã có order → lưu id
+
+  /**
+   * cartItems – danh sách món hiển thị ở cột phải
+   * Mỗi phần tử:
+   *  {
+   *    lineId: string   // key local, duy nhất cho từng dòng
+   *    dishId: number
+   *    name: string
+   *    price: number
+   *    quantity: number
+   *    note: string
+   *    status: "NEW" | "SENT_TO_KITCHEN" | "COOKING" | "DONE" | "CANCELED"
+   *  }
+   */
   const [cartItems, setCartItems] = useState([]);
 
-  // Lưu orderId nếu bàn đang có order mở
-  const [orderId, setOrderId] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState("ALL"); // Nhóm món đang chọn
+  const [searchKeyword, setSearchKeyword] = useState(""); // Tìm kiếm món theo tên
 
-  // Loading flag
-  const [loading, setLoading] = useState(false);
+  const [loadingOrder, setLoadingOrder] = useState(false); // loading khi load order theo bàn
 
-  //search món ăn
-  const [searchKeyword, setSearchKeyword] = useState("");
-
-  const location = useLocation();
-  const fromSummary = location.state?.fromSummary === true;
-
-  // --------------------------------------------------------------------
-  // 1. Hàm load danh mục món
-  // --------------------------------------------------------------------
-  const loadCategories = async () => {
-  try {
-        const res = await getCategories();  // res là ARRAY
-        // res = [ {id, name}, ... ]
-        setCategories(Array.isArray(res) ? res : []);
-    } catch (err) {
-        console.error("❌ Lỗi load categories:", err);
-        message.error("Không tải được danh mục món");
-        setCategories([]);
-    }
-  };
-
-  // --------------------------------------------------------------------
-  // 2. Hàm load danh sách món
-  // --------------------------------------------------------------------
-  const loadDishes = async () => {
-  try {
-    const res = await getDishes();  // res là ARRAY
-    setDishes(Array.isArray(res) ? res : []);
-    } catch (err) {
-        console.error("❌ Lỗi load món:", err);
-        message.error("Không tải được danh sách món");
-        setDishes([]);
-    }
-  };
-
-  // --------------------------------------------------------------------
-  // 3. Load order hiện tại của bàn
-  //     - Nếu bàn có order đang mở → setOrderId + đổ item vào cart
-  // --------------------------------------------------------------------
-  const fetchOrderOfTable = async () => {
+  // ------------------------------------------------------------
+  // 1. LOAD DANH SÁCH MÓN
+  // ------------------------------------------------------------
+  const loadDishes = useCallback(async () => {
     try {
+      setLoadingDishes(true);
+      const data = await getDishes(); // dishApi đã trả res.data
+      setDishes(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Lỗi load danh sách món:", error);
+      message.error("Không tải được danh sách món ăn");
+    } finally {
+      setLoadingDishes(false);
+    }
+  }, []);
+
+  // ------------------------------------------------------------
+  // 2. LOAD ORDER ĐANG MỞ CỦA BÀN (NẾU CÓ)
+  // ------------------------------------------------------------
+  const loadOrderOfTable = useCallback(async () => {
+    try {
+      setLoadingOrder(true);
+
       const res = await getOrderByTableId(tableId);
-
-      if (!res?.data) {
-        return; // bàn chưa có order → cart rỗng
-      }
-
       const order = res.data;
 
-      // Lưu orderId
-      setOrderId(order.id);
+      // Trường hợp bàn tồn tại nhưng CHƯA có order → cart rỗng, không báo lỗi
+      if (!order) {
+        setOrderId(null);
+        setCartItems([]);
+        return;
+      }
 
-      // Convert order items → cartItems format
-      // Backend thường trả: [{ dishId, name, quantity, price }]
-      const cart = order.items.map(i => ({
-        dishId: i.dishId,
-        name: i.dishName,
-        price: Number(i.dishPrice), // đúng field trong OrderItemResponse
-        quantity: i.quantity,
-      }));
+      setOrderId(order.id || null);
 
-      setCartItems(cart);
+      // Map OrderResponse.items → cartItems cho FE
+      const items =
+        (order.items || [])
+          // Bỏ các món đã hủy
+          .filter((it) => it.status !== "CANCELED")
+          .map((it) => ({
+            lineId: createLineId("ex"), // mỗi dòng 1 lineId riêng
+            dishId: it.dishId,
+            name: it.dishName,
+            price: Number(it.dishPrice ?? 0),
+            quantity: it.quantity ?? 1,
+            note: it.note || "",
+            status: it.status || "NEW",
+          }));
+
+      setCartItems(items);
     } catch (error) {
-      // Nếu API trả 404 → bàn chưa có order → OK
-      console.log("Bàn chưa có order đang mở");
+      console.error("Lỗi load order theo bàn:", error);
+      message.error("Không tải được order của bàn này");
+    } finally {
+      setLoadingOrder(false);
     }
-  };
+  }, [tableId]);
 
-  // --------------------------------------------------------------------
-  // Gọi API đồng thời khi mở trang
-  // --------------------------------------------------------------------
+  // ------------------------------------------------------------
+  // Gọi API khi component mount
+  // ------------------------------------------------------------
   useEffect(() => {
-    setLoading(true);
-
-    // Nếu quay lại từ Summary → chỉ reload danh mục + món, KHÔNG load order bàn
-    if (fromSummary) {
-        Promise.all([loadCategories(), loadDishes()])
-        .finally(() => setLoading(false));
-    } else {
-        Promise.all([loadCategories(), loadDishes(), fetchOrderOfTable()])
-        .finally(() => setLoading(false));
+    loadDishes();
+    if (tableId) {
+      loadOrderOfTable();
     }
-  }, [tableId, fromSummary]);
+  }, [loadDishes, loadOrderOfTable, tableId]);
 
-  // --------------------------------------------------------------------
-  // Hàm thêm món vào giỏ hàng
-  // Nếu món đã có trong cart → tăng số lượng
-  // --------------------------------------------------------------------
-  const handleAddDish = (dish) => {
+  // ------------------------------------------------------------
+  // 3. TÍNH TOÁN NHÓM (CATEGORY) TỪ DANH SÁCH MÓN
+  // ------------------------------------------------------------
+  const categoryOptions = useMemo(() => {
+    const nameSet = new Set();
+    dishes.forEach((d) => {
+      const catName = getCategoryNameFromDish(d);
+      nameSet.add(catName);
+    });
+
+    const list = Array.from(nameSet).sort();
+
+    if (list.length === 0) {
+      return [];
+    }
+
+    return list;
+  }, [dishes]);
+
+  // ------------------------------------------------------------
+  // 4. LỌC DANH SÁCH MÓN THEO CATEGORY + KEYWORD
+  // ------------------------------------------------------------
+  const filteredDishes = useMemo(() => {
+    return dishes.filter((dish) => {
+      // Filter theo category (nếu chọn khác "ALL")
+      if (selectedCategory !== "ALL") {
+        const catName = getCategoryNameFromDish(dish);
+        if (catName !== selectedCategory) {
+          return false;
+        }
+      }
+
+      // Filter theo keyword tên món
+      if (searchKeyword?.trim()) {
+        const keyword = searchKeyword.trim().toLowerCase();
+        const name = (dish.name || "").toLowerCase();
+        return name.includes(keyword);
+      }
+
+      return true;
+    });
+  }, [dishes, selectedCategory, searchKeyword]);
+
+  // ------------------------------------------------------------
+  // 5. HÀM THÊM MÓN VÀO GIỎ (CHỈ CẬP NHẬT LOCAL STATE)
+  // ------------------------------------------------------------
+  /**
+   * Thêm món vào giỏ
+   * -----------------------------------------------------------
+   * - Ưu tiên cộng dồn vào 1 dòng "Mới tạo" (status NEW) của cùng dishId
+   * - Nếu chưa có dòng NEW nào → tạo thêm 1 dòng NEW mới
+   * - KHÔNG gọi API BE ở đây (Option 1)
+   * - Các dòng SENT_TO_KITCHEN / COOKING / DONE giữ nguyên, không chỉnh sửa
+   * - Nếu món có item locked → vẫn cho phép gọi thêm (tăng quantity tổng)
+   * -----------------------------------------------------------
+   */
+  const handleAddDishToCart = (dish) => {
     setCartItems((prev) => {
-      const exist = prev.find((item) => item.dishId === dish.id);
+      // Tìm 1 dòng có cùng dishId và đang ở trạng thái NEW (ưu tiên cộng dồn)
+      const indexExistingNew = prev.findIndex(
+        (item) =>
+          item.dishId === dish.id &&
+          (item.status === "NEW" || !item.status)
+      );
 
-      if (exist) {
-        return prev.map((item) =>
-          item.dishId === dish.id
+      // Nếu tìm được → chỉ tăng quantity ở đúng 1 dòng đó
+      if (indexExistingNew !== -1) {
+        return prev.map((item, idx) =>
+          idx === indexExistingNew
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
 
-      // Món mới → thêm vào cart
-      return [
-        ...prev,
-        {
-          dishId: dish.id,
-          name: dish.name,
-          price: Number(dish.price),
-          quantity: 1,
-        },
-      ];
+      // Ngược lại → tạo thêm 1 dòng NEW mới
+      const newItem = {
+        lineId: createLineId("new"),
+        dishId: dish.id,
+        name: dish.name,
+        price: Number(dish.price ?? 0),
+        quantity: 1,
+        status: "NEW",
+        note: "",
+      };
+
+      return [...prev, newItem];
     });
   };
 
-  // --------------------------------------------------------------------
-  // Thay đổi số lượng trong cart
-  // Nếu quantity = 0 → xoá khỏi cart
-  // --------------------------------------------------------------------
-  const handleChangeQuantity = (dishId, qty) => {
+  // ------------------------------------------------------------
+  // 5.1. Thay đổi số lượng trong cart (LOCAL STATE)
+  // ------------------------------------------------------------
+  /**
+   * Thay đổi số lượng trong cart
+   * -----------------------------------------------------------
+   * - Nhận vào lineId (không phải dishId) để chỉ sửa đúng 1 dòng
+   * - Nếu qty = 0 → xóa dòng đó khỏi cart
+   * - KHÔNG gọi API BE ở đây, chỉ lưu local
+   * - Việc khóa theo Case A được xử lý ở CartItem + forceLocked
+   * -----------------------------------------------------------
+   */
+  const handleChangeQuantity = (lineId, qty) => {
     setCartItems((prev) =>
       prev
         .map((item) =>
-          item.dishId === dishId
-            ? { ...item, quantity: qty }
-            : item
+          item.lineId === lineId ? { ...item, quantity: qty } : item
         )
         .filter((item) => item.quantity > 0)
     );
   };
 
-  // --------------------------------------------------------------------
-  // Tính tổng tiền
-  // --------------------------------------------------------------------
+  // ------------------------------------------------------------
+  // 6. HÀM CẬP NHẬT SỐ LƯỢNG MÓN TRONG GIỎ (wrapper)
+  // ------------------------------------------------------------
+  const handleChangeCartQuantity = (lineId, newQuantity) => {
+    handleChangeQuantity(lineId, newQuantity);
+  };
+
+  // ------------------------------------------------------------
+  // 7. HÀM CẬP NHẬT GHI CHÚ MÓN (LOCAL STATE)
+  // ------------------------------------------------------------
+  const handleChangeCartNote = (lineId, newNote) => {
+    setCartItems((prev) =>
+      prev.map((it) =>
+        it.lineId === lineId ? { ...it, note: newNote } : it
+      )
+    );
+  };
+
+  // ------------------------------------------------------------
+  // 8. HÀM XOÁ MÓN KHỎI GIỎ
+  // ------------------------------------------------------------
+  const handleRemoveCartItem = (lineId) => {
+    // Đặt quantity = 0 → handleChangeQuantity sẽ tự filter bỏ
+    handleChangeQuantity(lineId, 0);
+  };
+
+  // ------------------------------------------------------------
+  // 9. TỔNG TIỀN CỦA GIỎ HÀNG (LOCAL)
+  // ------------------------------------------------------------
   const totalAmount = useMemo(() => {
-    return cartItems.reduce((total, item) => {
-      return total + Number(item.price) * item.quantity;
-    }, 0);
+    return cartItems.reduce(
+      (sum, item) => sum + Number(item.price || 0) * item.quantity,
+      0
+    );
   }, [cartItems]);
 
-  // --------------------------------------------------------------------
-  // Điều hướng sang trang Summary
-  // Mang theo cartItems + orderId
-  // --------------------------------------------------------------------
+  // ------------------------------------------------------------
+  // 10. CHUYỂN SANG MÀN HÌNH SUMMARY
+  // ------------------------------------------------------------
   const handleGoToSummary = () => {
-    if (cartItems.length === 0) {
-      message.warning("Bạn chưa chọn món nào");
+    if (!cartItems.length) {
+      message.warning("Chưa có món nào trong giỏ hàng");
       return;
     }
 
+    // Điều hướng sang PosOrderSummaryPage,
+    // truyền kèm cartItems + orderId hiện tại + tên bàn
     navigate(`/pos/table/${tableId}/summary`, {
       state: {
         cartItems,
         orderId,
+        tableName,
       },
     });
   };
 
-  // --------------------------------------------------------------------
-  // Render UI
-  // --------------------------------------------------------------------
+  // ------------------------------------------------------------
+  // 11. RENDER UI
+  // ------------------------------------------------------------
+  const isLoading = loadingDishes || loadingOrder;
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div style={{
-        height: "60vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}>
-        <Spin tip="Đang tải dữ liệu..." />
+      <div
+        style={{
+          minHeight: "60vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 18,
+        }}
+      >
+        <Spin tip="Đang tải dữ liệu gọi món..." />
       </div>
     );
   }
 
   return (
     <MotionWrapper>
-    <>
-        {/* Nút quay lại chọn bàn */}
-        <Button
-        variant="outlined"
-        style={{ marginBottom: 16 }}
-        onClick={() => navigate("/pos/table")}
-        >
-        ← Quay lại chọn bàn
-        </Button>
-        <Row gutter={16}>
-        {/* --------------------------------------------------------------
-            CỘT BÊN TRÁI – DANH SÁCH MÓN
-        -------------------------------------------------------------- */}
-        <Col span={14}>
-            <Space style={{ marginBottom: 16 }}>
-            {/* Select danh mục */}
-            <Select
-                placeholder="Chọn danh mục"
-                variant="outlined"
-                allowClear
-                style={{ minWidth: 200 }}
-                value={selectedCategoryId}
-                onChange={setSelectedCategoryId}
-                options={categories.map((c) => ({
-                label: c.name,
-                value: c.id,
-                }))}
-            />
+      <Row gutter={[16, 16]}>
+        {/* =====================================================================
+            CỘT TRÁI – DANH SÁCH MÓN
+        ===================================================================== */}
+        <Col xs={24} md={14} lg={16}>
+          {/* Header + filter */}
+          <Space
+            direction="vertical"
+            style={{ width: "100%", marginBottom: 8 }}
+          >
+            <Row
+              justify="space-between"
+              align="middle"
+              style={{ marginBottom: 16 }}
+            >
+              <Col>
+                <h2>Gọi món – {tableName}</h2>
+                <Text type="secondary">
+                  Chọn món ở bên trái, giỏ hàng sẽ hiển thị ở bên phải (lưu tạm
+                  trên màn hình cho đến khi bạn gửi Order).
+                </Text>
+              </Col>
+              <Col>
+                <Button onClick={() => navigate("/pos/table")} type="default">
+                  ← Về danh sách bàn
+                </Button>
+              </Col>
+            </Row>
 
-            {/* Search đơn giản tên món */}
-            <Input
-                placeholder="Tìm món..."
-                allowClear
-                style={{ width: 200 }}
-                onChange={(e) => setSearchKeyword(e.target.value)} // optional
+            {/* Hàng filter: nhóm món + ô tìm kiếm */}
+            <Row
+              justify="space-between"
+              align="middle"
+              style={{ marginTop: 8 }}
+            >
+              <Col>
+                {/* Nhóm món (category) dạng Segmented, scroll ngang */}
+                <Segmented
+                  options={[
+                    { label: "Tất cả", value: "ALL" },
+                    ...categoryOptions.map((name) => ({
+                      label: name,
+                      value: name,
+                    })),
+                  ]}
+                  value={selectedCategory}
+                  onChange={setSelectedCategory}
+                  style={{ maxWidth: "100%" }}
+                />
+              </Col>
+              <Col>
+                {/* Ô tìm kiếm theo tên món */}
+                <Input
+                  placeholder="Tìm món theo tên..."
+                  allowClear
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  style={{ width: 220 }}
+                />
+              </Col>
+            </Row>
+          </Space>
+
+          {/* Danh sách món dạng grid */}
+          {filteredDishes.length === 0 ? (
+            <Empty
+              description="Không có món nào phù hợp"
+              style={{ marginTop: 24 }}
             />
+          ) : (
+            <Row gutter={[12, 12]} style={{ marginTop: 8 }}>
+              {filteredDishes.map((dish) => (
+                <Col key={dish.id} xs={12} sm={8} md={8} lg={6}>
+                  <Card
+                    variant="outlined" // Rule 29
+                    hoverable
+                    style={{ height: "100%" }}
+                    onClick={() => handleAddDishToCart(dish)}
+                  >
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                      {/* Tên món */}
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          minHeight: 40,
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {dish.name}
+                      </div>
+
+                      {/* Giá món */}
+                      <div style={{ fontSize: 14 }}>
+                        <Text strong>
+                          {Number(dish.price ?? 0).toLocaleString()} đ
+                        </Text>
+                      </div>
+
+                      {/* Nút thêm món (tuỳ chọn, ngoài onClick Card) */}
+                      <Button
+                        type="primary"
+                        block
+                        variant="solid"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddDishToCart(dish);
+                        }}
+                      >
+                        Thêm vào giỏ
+                      </Button>
+                    </Space>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          )}
+        </Col>
+
+        {/* =====================================================================
+            CỘT PHẢI – GIỎ HÀNG (CART)
+        ===================================================================== */}
+        <Col xs={24} md={10} lg={8}>
+          <Card
+            title={`Giỏ hàng – ${tableName}`}
+            variant="outlined"
+            extra={<Text strong>Tổng: {totalAmount.toLocaleString()} đ</Text>}
+          >
+            {/* Nếu giỏ hàng trống */}
+            {!cartItems.length && (
+              <Empty
+                description="Chưa có món nào trong giỏ"
+                style={{ margin: "16px 0" }}
+              />
+            )}
+
+            {/* Danh sách CartItem */}
+            <Space direction="vertical" style={{ width: "100%" }} size={8}>
+              {cartItems.map((item) => {
+                // ----------------------------------------------------------
+                // Case A: Nếu món này có bất kỳ dòng locked
+                //  (SENT_TO_KITCHEN / COOKING / DONE)
+                //  → khóa luôn tất cả dòng của dishId đó
+                // ----------------------------------------------------------
+                const hasLockedSameDish = cartItems.some(
+                  (other) =>
+                    other.dishId === item.dishId &&
+                    (other.status === "SENT_TO_KITCHEN" ||
+                      other.status === "COOKING" ||
+                      other.status === "DONE")
+                );
+
+                return (
+                  <CartItem
+                    key={item.lineId}
+                    item={item}
+                    forceLocked={hasLockedSameDish}
+                    onChangeQuantity={(qty) =>
+                      handleChangeCartQuantity(item.lineId, qty)
+                    }
+                    onChangeNote={(note) =>
+                      handleChangeCartNote(item.lineId, note)
+                    }
+                    onRemove={() => handleRemoveCartItem(item.lineId)}
+                  />
+                );
+              })}
             </Space>
 
-            {/* Grid món ăn */}
-            <Row gutter={[12, 12]}>
-            {dishes
-                .filter((dish) =>
-                    selectedCategoryId ? dish.categoryId === selectedCategoryId : true
-                )
-                .filter((dish) =>
-                    searchKeyword.trim()
-                    ? dish.name.toLowerCase().includes(searchKeyword.trim().toLowerCase())
-                    : true
-                )
-                .map((dish) => (
-                <Col xs={12} sm={8} key={dish.id}>
-                    <Card
-                        variant="outlined"
-                        style={{
-                            minHeight: 170,
-                            cursor: "pointer",
-                            padding: 12
-                        }}
-                        >
-                        <div style={{ fontWeight: 700, fontSize: 18 }}>{dish.name}</div>
-                        <div style={{ color: "#666", marginBottom: 12, fontSize: 16 }}>
-                            {dish.price.toLocaleString()}đ
-                        </div>
-
-                        <Button
-                            type="primary"
-                            block
-                            variant="solid"
-                            style={{ height: 44, fontSize: 16 }}
-                            onClick={() => handleAddDish(dish)}
-                        >
-                            Thêm vào giỏ
-                        </Button>
-                    </Card>
-                </Col>
-                ))}
-            </Row>
-        </Col>
-
-        {/* --------------------------------------------------------------
-            CỘT BÊN PHẢI – GIỎ HÀNG
-        -------------------------------------------------------------- */}
-        <Col span={10}>
-            <Card
-            variant="outlined"
-            title={`Giỏ hàng – Bàn ${tableId}`}
-            extra={<div>Tổng: {totalAmount.toLocaleString()}đ</div>}
-            >
-            <List
-                dataSource={cartItems}
-                renderItem={(item) => (
-                <List.Item
-                    style={{ padding: 12, fontSize: 16 }}
-                    actions={[
-                        <Button
-                        danger
-                        size="small"
-                        onClick={() => handleChangeQuantity(item.dishId, 0)}
-                        >
-                        X
-                        </Button>
-                    ]}
-                >
-                    <div style={{ flex: 1, fontSize: 16, fontWeight: 500 }}>{item.name}</div>
-                    <div>
-                    <InputNumber
-                        min={0}
-                        style={{ width: 70 }}
-                        controls={true}
-                        size="large"
-                        value={item.quantity}
-                        onChange={(value) =>
-                        handleChangeQuantity(item.dishId, Number(value || 0))
-                        }
-                    />
-                    </div>
-                    <div style={{ width: 100, textAlign: "right", fontSize: 16 }}>
-                    {(item.price * item.quantity).toLocaleString()}đ
-                    </div>
-                </List.Item>
-                )}
-            />
-
+            {/* Nút điều hướng sang Summary */}
             <Button
-                type="primary"
-                block
-                variant="solid"
-                style={{ height: 50, fontSize: 18 }}
-                onClick={handleGoToSummary}
+              type="primary"
+              block
+              style={{ marginTop: 16 }}
+              variant="solid"
+              onClick={handleGoToSummary}
+              disabled={!cartItems.length}
             >
-                Xem lại & Gửi Order
+              Tiếp tục (Xác nhận order)
             </Button>
-            </Card>
+          </Card>
         </Col>
-        </Row>
-    </>
+      </Row>
     </MotionWrapper>
   );
-};
-
-export default PosOrderPage;
+}

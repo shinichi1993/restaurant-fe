@@ -16,6 +16,7 @@ import PosLayout from "../layouts/PosLayout";
 import PosTablePage from "../pages/pos/PosTablePage";
 import PosOrderPage from "../pages/pos/PosOrderPage";
 import PosOrderSummaryPage from "../pages/pos/PosOrderSummaryPage";
+import PosKitchenPage from "../pages/pos/KitchenPage";
 
 /**
  * Hàm renderPosRoutes
@@ -66,6 +67,8 @@ export const renderPosRoutes = () => {
         path="table/:tableId/summary"
         element={<PosOrderSummaryPage />}
       />
+
+      <Route path="kitchen" element={<PosKitchenPage />} />
     </Route>
   );
 };
