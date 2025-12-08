@@ -18,6 +18,9 @@ import PosOrderPage from "../pages/pos/PosOrderPage";
 import PosOrderSummaryPage from "../pages/pos/PosOrderSummaryPage";
 import PosKitchenPage from "../pages/pos/KitchenPage";
 
+import SimplePosTablePage from "../pages/pos/simple/SimplePosTablePage";
+import SimplePosOrderPage from "../pages/pos/simple/SimplePosOrderPage";
+
 /**
  * Hàm renderPosRoutes
  * ----------------------------------------------------
@@ -69,6 +72,10 @@ export const renderPosRoutes = () => {
       />
 
       <Route path="kitchen" element={<PosKitchenPage />} />
+
+      <Route path="simple" element={<SimplePosTablePage />} />
+      <Route path="simple/order" element={<SimplePosOrderPage />} /> 
+
     </Route>
   );
 };
