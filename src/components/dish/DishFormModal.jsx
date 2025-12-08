@@ -49,7 +49,7 @@ export default function DishFormModal({
       );
     } catch (err) {
       console.error(err);
-      message.error("Không tải được danh sách danh mục");
+      ////message.error("Không tải được danh sách danh mục");
     }
   };
 
@@ -100,7 +100,7 @@ export default function DishFormModal({
       reload();
     } catch (err) {
       console.error(err);
-      message.error("Lưu món ăn thất bại");
+      ////message.error("Lưu món ăn thất bại");
     }
   };
 

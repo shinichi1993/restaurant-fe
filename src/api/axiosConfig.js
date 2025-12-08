@@ -8,6 +8,7 @@
 // --------------------------------------------------------------
 
 import axios from "axios";
+import { message } from "antd";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -48,10 +49,19 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Chỉ xử lý khi là lỗi 401
-    if (error.response.status !== 401) {
+    const status = error.response.status;
+    const msg = error.response.data?.message;
+
+    // ================================
+    // 1) HIỂN THỊ LỖI TỪ BE CHO TẤT CẢ NON-401
+    // ================================
+    if (status !== 401) {
+      if (msg) {
+        message.error(msg); // ⚡ FE sẽ hiển thị đúng lỗi BE throw
+      }
       return Promise.reject(error);
     }
+
     // ❗Nếu lỗi 401 xảy ra ở login → không logout, không redirect
     if (originalRequest.url.includes("/api/auth/login")) {
         return Promise.reject(error);

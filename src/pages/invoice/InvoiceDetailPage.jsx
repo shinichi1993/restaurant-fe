@@ -72,7 +72,7 @@ export default function InvoiceDetailPage() {
       setInvoice(res);
     } catch (err) {
       console.error(err);
-      message.error("Không thể tải thông tin hóa đơn");
+      //message.error("Không thể tải thông tin hóa đơn");
     } finally {
       setLoading(false);
     }
@@ -102,7 +102,7 @@ export default function InvoiceDetailPage() {
       });
     } catch (err) {
       console.error("Lỗi tải thông tin nhà hàng:", err);
-      // Không cần message.error để tránh làm phiền user, vẫn hiển thị hóa đơn bình thường
+      // Không cần //message.error để tránh làm phiền user, vẫn hiển thị hóa đơn bình thường
     }
   };
 
@@ -111,7 +111,7 @@ export default function InvoiceDetailPage() {
   // -------------------------------------------------------------------
   const handlePrintInvoice = async () => {
     if (!invoiceId) {
-      message.error("Không tìm thấy mã hóa đơn để in.");
+      //message.error("Không tìm thấy mã hóa đơn để in.");
       return;
     }
 
@@ -123,7 +123,7 @@ export default function InvoiceDetailPage() {
       const printWindow = window.open("", "_blank");
 
       if (!printWindow) {
-        message.error("Trình duyệt chặn popup, vui lòng cho phép mở cửa sổ mới.");
+        //message.error("Trình duyệt chặn popup, vui lòng cho phép mở cửa sổ mới.");
         return;
       }
 
@@ -141,7 +141,7 @@ export default function InvoiceDetailPage() {
       }, 300);
     } catch (error) {
       console.error("Lỗi in hóa đơn:", error);
-      message.error("In hóa đơn thất bại, vui lòng thử lại.");
+      //message.error("In hóa đơn thất bại, vui lòng thử lại.");
     }
   };
 

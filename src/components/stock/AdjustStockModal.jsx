@@ -27,7 +27,7 @@ export default function AdjustStockModal({ open, onClose, reload }) {
       setIngredients(res);
     } catch (err) {
       console.error(err);
-      message.error("Không thể tải danh sách nguyên liệu");
+      //message.error("Không thể tải danh sách nguyên liệu");
     }
   };
 
@@ -44,7 +44,7 @@ export default function AdjustStockModal({ open, onClose, reload }) {
   const onFinish = async (values) => {
     try {
       if (values.quantity === 0) {
-        message.error("Số lượng điều chỉnh phải khác 0");
+        //message.error("Số lượng điều chỉnh phải khác 0");
         return;
       }
 
@@ -59,7 +59,7 @@ export default function AdjustStockModal({ open, onClose, reload }) {
       reload();
     } catch (err) {
       console.error(err);
-      message.error(err.response?.data?.message || "Điều chỉnh kho thất bại");
+      //message.error(err.response?.data?.message || "Điều chỉnh kho thất bại");
     }
   };
 

@@ -68,7 +68,7 @@ export default function IngredientPage() {
       setIngredients(res);
     } catch (err) {
       console.error("Lỗi load nguyên liệu:", err);
-      message.error("Không tải được danh sách nguyên liệu");
+      //message.error("Không tải được danh sách nguyên liệu");
     } finally {
       setLoading(false);
     }
@@ -88,7 +88,7 @@ export default function IngredientPage() {
       loadIngredients();
     } catch (err) {
       console.error(err);
-      message.error("Xóa thất bại");
+      //message.error("Xóa thất bại");
     }
   };
 

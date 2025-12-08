@@ -50,7 +50,7 @@ export default function SimplePosTablePage() {
       setTables(data || []);
     } catch (err) {
       console.error("Lỗi load danh sách bàn Simple POS:", err);
-      message.error("Không tải được danh sách bàn");
+      //message.error("Không tải được danh sách bàn");
     } finally {
       setLoading(false);
     }

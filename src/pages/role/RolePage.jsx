@@ -57,7 +57,7 @@ export default function RolePage() {
       setRoles(data || []);
     } catch (err) {
       console.error(err);
-      message.error("Không tải được danh sách vai trò");
+      //message.error("Không tải được danh sách vai trò");
     } finally {
       setLoading(false);
     }
@@ -93,7 +93,7 @@ export default function RolePage() {
       setOpenModal(true);
     } catch (err) {
       console.error(err);
-      message.error("Không tải được chi tiết vai trò");
+      //message.error("Không tải được chi tiết vai trò");
     }
   };
 
@@ -111,7 +111,7 @@ export default function RolePage() {
       loadRoles(); // reload sau khi lưu (Q4: A)
     } catch (err) {
       console.error(err);
-      message.error("Lưu vai trò thất bại");
+      //message.error("Lưu vai trò thất bại");
     }
   };
 
@@ -125,7 +125,7 @@ export default function RolePage() {
       loadRoles();
     } catch (err) {
       console.error(err);
-      message.error("Không thể xóa vai trò");
+      //message.error("Không thể xóa vai trò");
     }
   };
 

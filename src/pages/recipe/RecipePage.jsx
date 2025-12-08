@@ -74,7 +74,7 @@ export default function RecipePage() {
       );
     } catch (err) {
       console.error(err);
-      message.error("Không thể tải danh sách món ăn");
+      //message.error("Không thể tải danh sách món ăn");
     }
   };
 
@@ -89,7 +89,7 @@ export default function RecipePage() {
       setRecipe(res);
     } catch (err) {
       console.error(err);
-      message.error("Không thể tải định lượng món ăn");
+      //message.error("Không thể tải định lượng món ăn");
     } finally {
       setLoading(false);
     }
@@ -117,7 +117,7 @@ export default function RecipePage() {
       loadRecipe();
     } catch (err) {
       console.error(err);
-      message.error("Xóa thất bại");
+      //message.error("Xóa thất bại");
     }
   };
 
@@ -133,7 +133,7 @@ export default function RecipePage() {
       loadRecipe();
     } catch (err) {
       console.error(err);
-      message.error("Reset thất bại");
+      //message.error("Reset thất bại");
     }
   };
 

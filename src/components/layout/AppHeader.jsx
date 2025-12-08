@@ -50,7 +50,7 @@ export default function AppHeader() {
       message.success("Đăng xuất thành công");
     } catch (err) {
       console.error("Lỗi đăng xuất:", err);
-      message.error("Không thể đăng xuất");
+      //message.error("Không thể đăng xuất");
     }
   };
 

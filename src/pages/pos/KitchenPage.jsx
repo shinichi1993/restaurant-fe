@@ -123,7 +123,7 @@ export default function KitchenPage() {
       setOrders(newOrders);
     } catch (error) {
       console.error(error);
-      message.error("Không tải được danh sách order cho bếp");
+      //message.error("Không tải được danh sách order cho bếp");
     } finally {
       setLoading(false);
     }
@@ -175,7 +175,7 @@ export default function KitchenPage() {
       const msg =
         error?.response?.data?.message ||
         "Không cập nhật được trạng thái món";
-      message.error(msg);
+      //message.error(msg);
     } finally {
       setLoading(false);
     }
@@ -198,7 +198,7 @@ export default function KitchenPage() {
       console.error(error);
       const msg =
         error?.response?.data?.message || "Không thể hủy món (POS setting)";
-      message.error(msg);
+      //message.error(msg);
     } finally {
       setLoading(false);
     }

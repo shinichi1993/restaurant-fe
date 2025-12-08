@@ -128,10 +128,12 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
       }
     } catch (err) {
       console.error(err);
-      message.error(
+      
+      /*message.error(
         err?.response?.data?.message ||
           "Không thể tính tiền thanh toán. Vui lòng thử lại"
       );
+      */
       // Nếu lỗi → giữ nguyên calcResult cũ (nếu có), không reset cứng
     } finally {
       setCalculating(false);
@@ -206,18 +208,18 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
         }
       } catch (err) {
         console.error(err);
-        message.error(
+        /*message.error(
           "Thanh toán xong nhưng không lấy được thông tin hóa đơn"
-        );
+        );*/
       }
 
       // Đóng modal sau khi xong
       onClose();
     } catch (err) {
       console.error(err);
-      message.error(
+      /*message.error(
         err?.response?.data?.message || "Thanh toán thất bại. Vui lòng thử lại"
-      );
+      );*/
     } finally {
       setSubmitting(false);
     }

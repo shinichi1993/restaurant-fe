@@ -91,7 +91,7 @@ export default function TableActionModal({
       onClose();
     } catch (err) {
       console.error(err);
-      message.error("Không thể gộp bàn");
+      //message.error("Không thể gộp bàn");
     }
   };
 
@@ -114,7 +114,7 @@ export default function TableActionModal({
       onClose();
     } catch (err) {
       console.error(err);
-      message.error("Không thể chuyển bàn");
+      //message.error("Không thể chuyển bàn");
     }
   };
 
@@ -129,7 +129,7 @@ export default function TableActionModal({
       onClose();
     } catch (err) {
       console.error(err);
-      message.error("Không thể tách bàn");
+      //message.error("Không thể tách bàn");
     }
   };
 

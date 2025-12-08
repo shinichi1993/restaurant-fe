@@ -73,7 +73,7 @@ export default function OrderCreatePage() {
       setDishes(res);
     } catch (err) {
       console.error("Lỗi load món:", err);
-      message.error("Không thể tải danh sách món");
+      //message.error("Không thể tải danh sách món");
     } finally {
       setLoadingDishes(false);
     }
@@ -85,7 +85,7 @@ export default function OrderCreatePage() {
       setTables(res || []);
     } catch (err) {
       console.error("Lỗi load bàn:", err);
-      message.error("Không thể tải danh sách bàn");
+      //message.error("Không thể tải danh sách bàn");
     }
   };
 
@@ -125,7 +125,7 @@ export default function OrderCreatePage() {
 
     const dish = dishes.find((d) => d.id === dishId);
     if (!dish) {
-      message.error("Không tìm thấy món");
+      //message.error("Không tìm thấy món");
       return;
     }
 
@@ -197,7 +197,7 @@ export default function OrderCreatePage() {
       navigate("/orders");
     } catch (err) {
       console.error(err);
-      message.error("Không thể tạo order");
+      //message.error("Không thể tạo order");
     } finally {
       setSubmitting(false);
     }

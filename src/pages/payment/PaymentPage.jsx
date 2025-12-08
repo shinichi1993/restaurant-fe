@@ -72,7 +72,7 @@ export default function PaymentPage() {
       setPayments(data);
     } catch (err) {
       console.error("Lỗi load payment:", err);
-      message.error("Không thể tải danh sách thanh toán");
+      //message.error("Không thể tải danh sách thanh toán");
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,7 @@ export default function PaymentPage() {
       setPayments(data);
     } catch (err) {
       console.error("Lỗi lọc payment:", err);
-      message.error("Không thể lọc danh sách thanh toán");
+      //message.error("Không thể lọc danh sách thanh toán");
     } finally {
       setLoading(false);
     }
@@ -129,7 +129,7 @@ export default function PaymentPage() {
       setDetailOpen(true);
     } catch (err) {
       console.error("Lỗi load chi tiết payment:", err);
-      message.error("Không thể tải chi tiết thanh toán");
+      //message.error("Không thể tải chi tiết thanh toán");
     }
   };
 

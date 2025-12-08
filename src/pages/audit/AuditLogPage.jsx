@@ -70,7 +70,7 @@ export default function AuditLogPage() {
       setActions(res || []); // res là array string
     } catch (e) {
       console.error(e);
-      message.error("Không tải được danh sách Action từ hệ thống");
+      //message.error("Không tải được danh sách Action từ hệ thống");
     }
   };
 
@@ -97,7 +97,7 @@ export default function AuditLogPage() {
       setTotal(res.totalElements || 0);
     } catch (e) {
       console.error(e);
-      message.error("Không tải được dữ liệu Audit Log");
+      //message.error("Không tải được dữ liệu Audit Log");
     } finally {
       setLoading(false);
     }

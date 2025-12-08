@@ -26,7 +26,7 @@ export default function VoucherPage() {
       const res = await getVouchers();
       setVouchers(res);
     } catch (err) {
-      message.error("Lỗi khi tải danh sách voucher");
+      //message.error("Lỗi khi tải danh sách voucher");
     }
     setLoading(false);
   };
@@ -78,7 +78,7 @@ export default function VoucherPage() {
       setModalOpen(false);
       loadData();
     } catch (err) {
-      message.error(err.response?.data?.message || "Lỗi xử lý voucher");
+      //message.error(err.response?.data?.message || "Lỗi xử lý voucher");
     }
   };
 
@@ -89,7 +89,7 @@ export default function VoucherPage() {
       message.success("Đã vô hiệu hóa voucher");
       loadData();
     } catch (err) {
-      message.error("Không thể vô hiệu hóa voucher");
+      //message.error("Không thể vô hiệu hóa voucher");
     }
   };
 

@@ -67,7 +67,7 @@ export default function DishPage() {
       setDishes(res);
     } catch (err) {
       console.error(err);
-      message.error("Không tải được danh sách món ăn");
+      //message.error("Không tải được danh sách món ăn");
     } finally {
       setLoading(false);
     }
@@ -85,7 +85,7 @@ export default function DishPage() {
       );
     } catch (err) {
       console.error(err);
-      message.error("Không tải được danh sách danh mục");
+      //message.error("Không tải được danh sách danh mục");
     }
   };
 
@@ -103,7 +103,7 @@ export default function DishPage() {
       loadDishes();
     } catch (err) {
       console.error(err);
-      message.error("Xóa món ăn thất bại");
+      //message.error("Xóa món ăn thất bại");
     }
   };
 

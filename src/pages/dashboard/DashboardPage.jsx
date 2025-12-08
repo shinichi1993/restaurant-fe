@@ -87,7 +87,7 @@ export default function DashboardPage() {
       setTopDishes(topDishRes);
     } catch (err) {
       console.error("Lỗi load Dashboard:", err);
-      message.error("Không thể tải dữ liệu Dashboard");
+      //message.error("Không thể tải dữ liệu Dashboard");
     } finally {
       setLoadingSummary(false);
       setLoadingChart(false);

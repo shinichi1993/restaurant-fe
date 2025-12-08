@@ -60,7 +60,7 @@ export default function RecipeFormModal({ open, onClose, item, dishId, reload })
       );
     } catch (err) {
       console.error(err);
-      message.error("Không thể tải danh sách nguyên liệu");
+      //message.error("Không thể tải danh sách nguyên liệu");
     }
   };
 
@@ -111,7 +111,7 @@ export default function RecipeFormModal({ open, onClose, item, dishId, reload })
 
     } catch (err) {
       console.error(err);
-      message.error("Lưu dữ liệu thất bại");
+      //message.error("Lưu dữ liệu thất bại");
     }
   };
 

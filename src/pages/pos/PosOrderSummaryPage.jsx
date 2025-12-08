@@ -122,7 +122,7 @@ const PosOrderSummaryPage = () => {
       navigate("/pos/table");
     } catch (error) {
       console.error("Lỗi gửi order:", error);
-      message.error("Gửi order thất bại, vui lòng kiểm tra lại");
+      //message.error("Gửi order thất bại, vui lòng kiểm tra lại");
     }
   };
 

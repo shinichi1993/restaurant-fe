@@ -120,7 +120,7 @@ export default function PosOrderPage() {
       setDishes(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Lỗi load danh sách món:", error);
-      message.error("Không tải được danh sách món ăn");
+      //message.error("Không tải được danh sách món ăn");
     } finally {
       setLoadingDishes(false);
     }
@@ -163,7 +163,7 @@ export default function PosOrderPage() {
       setCartItems(items);
     } catch (error) {
       console.error("Lỗi load order theo bàn:", error);
-      message.error("Không tải được order của bàn này");
+      //message.error("Không tải được order của bàn này");
     } finally {
       setLoadingOrder(false);
     }

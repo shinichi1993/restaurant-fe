@@ -52,7 +52,7 @@ export default function CategoryFormModal({ open, onClose, category, reload }) {
       reload(); // reload lại danh sách
     } catch (err) {
       console.error(err);
-      message.error("Lưu danh mục thất bại");
+      ////message.error("Lưu danh mục thất bại");
     }
   };
 

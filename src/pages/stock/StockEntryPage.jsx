@@ -73,7 +73,7 @@ export default function StockEntryPage() {
       setData(res);
     } catch (err) {
       console.error(err);
-      message.error("Không thể tải lịch sử nhập kho");
+      //message.error("Không thể tải lịch sử nhập kho");
     } finally {
       setLoading(false);
     }
@@ -97,7 +97,7 @@ export default function StockEntryPage() {
       );
     } catch (err) {
       console.error(err);
-      message.error("Không thể tải danh sách nguyên liệu để lọc");
+      //message.error("Không thể tải danh sách nguyên liệu để lọc");
     }
   };
 
@@ -128,7 +128,7 @@ export default function StockEntryPage() {
       setData(res);
     } catch (err) {
       console.error(err);
-      message.error("Không thể lọc dữ liệu");
+      //message.error("Không thể lọc dữ liệu");
     } finally {
       setLoading(false);
     }

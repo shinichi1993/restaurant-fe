@@ -96,7 +96,7 @@ const PosTablePage = () => {
       setTables(data);
     } catch (err) {
       console.error("❌ Lỗi khi tải danh sách bàn (POS):", err);
-      message.error("Không tải được danh sách bàn POS");
+      //message.error("Không tải được danh sách bàn POS");
     } finally {
       setLoading(false);
     }

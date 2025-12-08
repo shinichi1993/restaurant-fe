@@ -107,7 +107,7 @@ export default function SimplePosOrderPage() {
       setDishes(data || []);
     } catch (err) {
       console.error("Lỗi load danh sách món Simple POS:", err);
-      message.error("Không tải được danh sách món ăn");
+      //message.error("Không tải được danh sách món ăn");
     } finally {
       setLoadingDishes(false);
     }
@@ -265,10 +265,11 @@ export default function SimplePosOrderPage() {
 
     } catch (err) {
       console.error("Lỗi tạo order Simple POS:", err);
-      message.error(
+      /*message.error(
         err?.response?.data?.message ||
           "Không tạo được order, vui lòng kiểm tra lại."
       );
+      */
     } finally {
       setCreatingOrder(false);
     }

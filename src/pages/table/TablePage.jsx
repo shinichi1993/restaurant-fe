@@ -76,7 +76,7 @@ export default function TablePage() {
       setTables(res || []);
     } catch (err) {
       console.error("Lỗi load bàn:", err);
-      message.error("Không thể tải danh sách bàn");
+      //message.error("Không thể tải danh sách bàn");
     } finally {
       setLoading(false);
     }
@@ -146,7 +146,7 @@ export default function TablePage() {
       loadTables();
     } catch (err) {
       console.error("Lỗi lưu bàn:", err);
-      message.error("Không thể lưu bàn");
+      //message.error("Không thể lưu bàn");
     }
   };
 

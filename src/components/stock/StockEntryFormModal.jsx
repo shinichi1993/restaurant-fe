@@ -31,7 +31,7 @@ export default function StockEntryFormModal({ open, onClose, reload }) {
       setIngredients(res);
     } catch (err) {
       console.error(err);
-      message.error("Không thể tải danh sách nguyên liệu");
+      //message.error("Không thể tải danh sách nguyên liệu");
     }
   };
 
@@ -48,7 +48,7 @@ export default function StockEntryFormModal({ open, onClose, reload }) {
   const onFinish = async (values) => {
     try {
       if (values.quantity <= 0) {
-        message.error("Số lượng phải lớn hơn 0");
+        //message.error("Số lượng phải lớn hơn 0");
         return;
       }
 
@@ -64,7 +64,7 @@ export default function StockEntryFormModal({ open, onClose, reload }) {
       reload();
     } catch (err) {
       console.error(err);
-      message.error("Nhập kho thất bại");
+      //message.error("Nhập kho thất bại");
     }
   };
 

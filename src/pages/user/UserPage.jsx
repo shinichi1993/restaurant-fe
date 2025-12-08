@@ -69,7 +69,7 @@ export default function UserPage() {
       setUsers(res);
     } catch (err) {
       console.error("Lỗi load user:", err);
-      message.error("Không tải được danh sách người dùng");
+      //message.error("Không tải được danh sách người dùng");
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,7 @@ export default function UserPage() {
       loadUsers();
     } catch (err) {
       console.error(err);
-      message.error("Xóa thất bại");
+      //message.error("Xóa thất bại");
     }
   };
 

@@ -32,7 +32,7 @@ export default function LoginPage() {
       navigate("/dashboard"); // Điều hướng Dashboard
     } catch (error) {
       console.error("Lỗi đăng nhập:", error);
-      message.error("Tên đăng nhập hoặc mật khẩu không đúng");
+      //message.error("Tên đăng nhập hoặc mật khẩu không đúng");
     } finally {
       setLoading(false);
     }

@@ -79,7 +79,7 @@ export default function IngredientReportPage() {
       setUsageData(res);
     } catch (err) {
       console.error(err);
-      message.error("Không tải được báo cáo tiêu hao");
+      //message.error("Không tải được báo cáo tiêu hao");
     } finally {
       setLoadingUsage(false);
     }
@@ -93,7 +93,7 @@ export default function IngredientReportPage() {
       setStockData(res);
     } catch (err) {
       console.error(err);
-      message.error("Không tải được báo cáo nhập kho");
+      //message.error("Không tải được báo cáo nhập kho");
     } finally {
       setLoadingStock(false);
     }
@@ -125,7 +125,7 @@ export default function IngredientReportPage() {
       );
     } catch (e) {
       console.error(e);
-      message.error("Xuất Excel tiêu hao thất bại");
+      //message.error("Xuất Excel tiêu hao thất bại");
     } finally {
       setExporting(false);
     }
@@ -142,7 +142,7 @@ export default function IngredientReportPage() {
       );
     } catch (e) {
       console.error(e);
-      message.error("Xuất PDF tiêu hao thất bại");
+      //message.error("Xuất PDF tiêu hao thất bại");
     } finally {
       setExporting(false);
     }
@@ -160,7 +160,7 @@ export default function IngredientReportPage() {
       );
     } catch (e) {
       console.error(e);
-      message.error("Xuất Excel nhập kho thất bại");
+      //message.error("Xuất Excel nhập kho thất bại");
     } finally {
       setExporting(false);
     }
@@ -177,7 +177,7 @@ export default function IngredientReportPage() {
       );
     } catch (e) {
       console.error(e);
-      message.error("Xuất PDF nhập kho thất bại");
+      //message.error("Xuất PDF nhập kho thất bại");
     } finally {
       setExporting(false);
     }

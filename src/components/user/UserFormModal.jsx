@@ -73,7 +73,7 @@ export default function UserFormModal({ open, onClose, user, reload }) {
       reload();
     } catch (err) {
       console.error(err);
-      message.error("Lưu dữ liệu thất bại");
+      //message.error("Lưu dữ liệu thất bại");
     }
   };
 

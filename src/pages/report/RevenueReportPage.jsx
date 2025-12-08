@@ -67,7 +67,7 @@ export default function RevenueReportPage() {
       setReport(res);
     } catch (err) {
       console.error(err);
-      message.error("Không tải được báo cáo doanh thu");
+      //message.error("Không tải được báo cáo doanh thu");
     } finally {
       setLoading(false);
     }
@@ -99,7 +99,7 @@ export default function RevenueReportPage() {
       );
     } catch (err) {
       console.error(err);
-      message.error("Xuất Excel thất bại");
+      //message.error("Xuất Excel thất bại");
     } finally {
       setExporting(false);
     }
@@ -119,7 +119,7 @@ export default function RevenueReportPage() {
       );
     } catch (err) {
       console.error(err);
-      message.error("Xuất PDF thất bại");
+      //message.error("Xuất PDF thất bại");
     } finally {
       setExporting(false);
     }

@@ -135,7 +135,7 @@ const AdvancedSettingsPage = () => {
       form.setFieldsValue(formValues);
     } catch (error) {
       console.error("Lỗi load cấu hình hệ thống:", error);
-      message.error("Không tải được cấu hình hệ thống, vui lòng thử lại.");
+      //message.error("Không tải được cấu hình hệ thống, vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -225,7 +225,7 @@ const AdvancedSettingsPage = () => {
       await loadSettings();
     } catch (error) {
       console.error("Lỗi lưu cấu hình:", error);
-      message.error("Lưu cấu hình thất bại, vui lòng kiểm tra lại.");
+      //message.error("Lưu cấu hình thất bại, vui lòng kiểm tra lại.");
     } finally {
       setSaving(false);
     }

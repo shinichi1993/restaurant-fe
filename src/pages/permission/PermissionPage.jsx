@@ -20,7 +20,7 @@ export default function PermissionPage() {
       setPermissions(data || []);
     } catch (err) {
       console.error(err);
-      message.error("Không tải được danh sách quyền");
+      //message.error("Không tải được danh sách quyền");
     } finally {
       setLoading(false);
     }

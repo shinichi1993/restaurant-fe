@@ -85,7 +85,7 @@ export default function OrderPage() {
       setOrders(res);
     } catch (err) {
       console.error(err);
-      message.error("Không thể tải danh sách Order");
+      //message.error("Không thể tải danh sách Order");
     } finally {
       setLoading(false);
     }
@@ -167,7 +167,7 @@ export default function OrderPage() {
       loadOrders();
     } catch (err) {
       console.error(err);
-      message.error("Cập nhật trạng thái thất bại");
+      //message.error("Cập nhật trạng thái thất bại");
     }
   };
 
@@ -181,7 +181,7 @@ export default function OrderPage() {
       loadOrders();
     } catch (err) {
       console.error(err);
-      message.error("Xóa thất bại");
+      //message.error("Xóa thất bại");
     }
   };
 

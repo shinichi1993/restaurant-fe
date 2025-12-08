@@ -72,7 +72,7 @@ export default function IngredientFormModal({
       reload();
     } catch (err) {
       console.error(err);
-      message.error("Lưu dữ liệu thất bại");
+      //message.error("Lưu dữ liệu thất bại");
     }
   };
 

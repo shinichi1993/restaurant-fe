@@ -62,7 +62,7 @@ export default function CategoryPage() {
       setCategories(res);
     } catch (err) {
       console.error(err);
-      message.error("Không tải được danh sách danh mục");
+      //message.error("Không tải được danh sách danh mục");
     } finally {
       setLoading(false);
     }
@@ -81,7 +81,7 @@ export default function CategoryPage() {
       loadCategories();
     } catch (err) {
       console.error(err);
-      message.error("Xóa danh mục thất bại");
+      //message.error("Xóa danh mục thất bại");
     }
   };
 

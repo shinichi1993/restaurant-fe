@@ -49,7 +49,7 @@ export default function TopDishReportPage() {
       );
     } catch (e) {
       console.error(e);
-      message.error("Xuất Excel thất bại");
+      //message.error("Xuất Excel thất bại");
     } finally {
       setExporting(false);
     }
@@ -67,7 +67,7 @@ export default function TopDishReportPage() {
       );
     } catch (e) {
       console.error(e);
-      message.error("Xuất PDF thất bại");
+      //message.error("Xuất PDF thất bại");
     } finally {
       setExporting(false);
     }
@@ -84,7 +84,7 @@ export default function TopDishReportPage() {
       setData(res);
     } catch (err) {
       console.error(err);
-      message.error("Không tải được báo cáo top món");
+      //message.error("Không tải được báo cáo top món");
     } finally {
       setLoading(false);
     }
