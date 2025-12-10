@@ -332,23 +332,69 @@ export default function InvoiceDetailPage() {
             </Descriptions.Item>
 
             {/* 🔵 TỔNG TIỀN GỐC TRƯỚC GIẢM */}
-            {invoice.discountAmount > 0 && (
+            {Number(invoice.originalTotalAmount || 0) > 0 && (
               <Descriptions.Item label="Tổng gốc (trước giảm)">
                 <span style={{ textDecoration: "line-through", color: "#888" }}>
-                  {(Number(invoice.totalAmount) +
-                    Number(invoice.discountAmount)
-                  ).toLocaleString("vi-VN")}
-                  {" "}₫
+                  {Number(invoice.originalTotalAmount || 0).toLocaleString("vi-VN")} ₫
                 </span>
               </Descriptions.Item>
             )}
 
-            {/* 🔵 SỐ TIỀN GIẢM TỪ VOUCHER */}
-            {invoice.discountAmount > 0 && (
-              <Descriptions.Item label="Giảm giá (voucher)">
+            {/* 🔵 GIẢM VOUCHER */}
+            {Number(invoice.voucherDiscountAmount || 0) > 0 && (
+              <Descriptions.Item label="Giảm voucher">
                 <Tag color="red">
-                  -{Number(invoice.discountAmount).toLocaleString("vi-VN")} ₫
+                  -{Number(invoice.voucherDiscountAmount || 0).toLocaleString("vi-VN")} ₫
                 </Tag>
+              </Descriptions.Item>
+            )}
+
+            {/* 🔵 GIẢM MẶC ĐỊNH */}
+            {Number(invoice.defaultDiscountAmount || 0) > 0 && (
+              <Descriptions.Item label="Giảm mặc định">
+                <Tag color="orange">
+                  -{Number(invoice.defaultDiscountAmount || 0).toLocaleString("vi-VN")} ₫
+                </Tag>
+              </Descriptions.Item>
+            )}
+
+            {/* 🔵 TỔNG GIẢM */}
+            {Number(invoice.discountAmount || 0) > 0 && (
+              <Descriptions.Item label="Tổng giảm giá">
+                <Tag color="red">
+                  -{Number(invoice.discountAmount || 0).toLocaleString("vi-VN")} ₫
+                </Tag>
+              </Descriptions.Item>
+            )}
+
+            {/* 🔵 VAT */}
+            {Number(invoice.vatPercent || 0) > 0 && (
+              <Descriptions.Item label={`VAT (${Number(invoice.vatPercent)}%)`}>
+                {Number(invoice.vatAmount || 0).toLocaleString("vi-VN")} ₫
+              </Descriptions.Item>
+            )}
+
+            {/* 🔵 TỔNG TIỀN SAU GIẢM + VAT */}
+            <Descriptions.Item label="Tổng thanh toán">
+              <Tag color="green" style={{ fontSize: 14 }}>
+                {invoice.totalAmount
+                  ? Number(invoice.totalAmount).toLocaleString("vi-VN")
+                  : 0}{" "}
+                ₫
+              </Tag>
+            </Descriptions.Item>
+
+            {/* 🔵 KHÁCH TRẢ */}
+            {invoice.customerPaid && (
+              <Descriptions.Item label="Khách trả">
+                {Number(invoice.customerPaid || 0).toLocaleString("vi-VN")} ₫
+              </Descriptions.Item>
+            )}
+
+            {/* 🔵 TIỀN THỪA */}
+            {invoice.changeAmount && (
+              <Descriptions.Item label="Tiền thừa trả khách">
+                {Number(invoice.changeAmount || 0).toLocaleString("vi-VN")} ₫
               </Descriptions.Item>
             )}
 
@@ -358,16 +404,6 @@ export default function InvoiceDetailPage() {
                 <Tag color="blue">{invoice.voucherCode}</Tag>
               </Descriptions.Item>
             )}
-
-            {/* 🔵 TỔNG TIỀN SAU GIẢM */}
-            <Descriptions.Item label="Tổng thanh toán">
-              <Tag color="green" style={{ fontSize: 14 }}>
-                {invoice.totalAmount
-                  ? Number(invoice.totalAmount).toLocaleString("vi-VN")
-                  : 0}{" "}
-                ₫
-              </Tag>
-            </Descriptions.Item>
 
             {/* 🔵 ĐIỂM THƯỞNG */}
             <Descriptions.Item label="Điểm nhận được">
