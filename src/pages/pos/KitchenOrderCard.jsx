@@ -20,7 +20,7 @@
 //  - onChangeStatus(orderItemId, nextStatus)
 //  - onCancelItem(orderItemId)
 // ============================================================================
-
+import "./kitchen.css";
 import { Card, List, Space, Tag, Button, Typography, Tooltip } from "antd";
 
 const { Text } = Typography;
@@ -39,6 +39,14 @@ const STATUS_COLOR_MAP = {
   COOKING: "orange",
   DONE: "green",
   CANCELED: "default",
+};
+
+const STATUS_BG_MAP = {
+  NEW: "#fffbe6",             // vàng nhạt
+  SENT_TO_KITCHEN: "#e6f7ff", // xanh dương nhạt
+  COOKING: "#fff1f0",         // đỏ nhạt
+  DONE: "#f6ffed",            // xanh lá nhạt
+  CANCELED: "#f5f5f5",        // xám nhạt
 };
 
 /**
@@ -145,7 +153,14 @@ export default function KitchenOrderCard({
             <List.Item
               style={{
                 alignItems: "flex-start",
+                background: STATUS_BG_MAP[item.status] || "white",
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 8,
+                border: "1px solid #e8e8e8",
+                transition: "0.2s",
               }}
+              className="kitchen-item"
             >
               <Space
                 direction="vertical"
@@ -163,17 +178,19 @@ export default function KitchenOrderCard({
                   <Tag color={color}>{label}</Tag>
                 </Space>
 
-                {/* Dòng 2: ghi chú (nếu có) + nút hành động */}
-                <Space
-                  style={{ width: "100%", justifyContent: "space-between" }}
-                >
-                  <div style={{ maxWidth: "60%" }}>
-                    {item.note && (
-                      <Text type="secondary">Ghi chú: {item.note}</Text>
-                    )}
+                {/* Dòng 2: GHI CHÚ */}
+                {item.note && (
+                  <div style={{ marginTop: 2, marginLeft: 4 }}>
+                    <Text type="secondary" style={{ fontSize: 13 }}>
+                      • Ghi chú: {item.note}
+                    </Text>
                   </div>
-                  <Space>{actions}</Space>
-                </Space>
+                )}
+
+                {/* Dòng 3: nút hành động */}
+                <div style={{ marginTop: 4, display: "flex", gap: 8 }}>
+                  {actions}
+                </div>
               </Space>
             </List.Item>
           );

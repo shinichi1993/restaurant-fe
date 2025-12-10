@@ -16,6 +16,8 @@ export default function OrderDetailModal({ open, onClose, order }) {
   
   // Nếu chưa có dữ liệu thì không render nội dung modal
   if (!order) return null;
+  // Lọc bỏ các món đã hủy – KHÔNG hiển thị trong Order Detail
+  const visibleItems = order.items.filter(item => item.status !== "CANCELED");
 
   // --------------------------------------------
   // Màu trạng thái
@@ -69,7 +71,7 @@ export default function OrderDetailModal({ open, onClose, order }) {
 
       <Table
         rowKey="dishId"
-        dataSource={order.items}
+        dataSource={visibleItems}
         columns={itemColumns}
         pagination={false}
       />

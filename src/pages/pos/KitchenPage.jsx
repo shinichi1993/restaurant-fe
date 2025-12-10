@@ -33,18 +33,19 @@ import {
 
 import { getKitchenOrders, updateKitchenItemStatus } from "../../api/kitchenApi";
 import KitchenOrderCard from "./KitchenOrderCard";
+import "./kitchen.css";
 
 const { Title, Text } = Typography;
 
 // Các option trạng thái cho filter
 // value = null → không filter, hiện tất cả
 const STATUS_OPTIONS = [
-  { label: "Tất cả", value: null },
-  { label: "Mới tạo", value: "NEW" },
-  { label: "Đã gửi bếp", value: "SENT_TO_KITCHEN" },
-  { label: "Đang nấu", value: "COOKING" },
-  { label: "Hoàn thành", value: "DONE" },
-  { label: "Đã hủy", value: "CANCELED" },
+  { label: "Tất cả", value: "ALL", color: "#d9d9d9" },
+  { label: "Mới tạo", value: "NEW", color: "#ffe58f" },
+  { label: "Đã gửi bếp", value: "SENT_TO_KITCHEN", color: "#91d5ff" },
+  { label: "Đang nấu", value: "COOKING", color: "#ffa39e" },
+  { label: "Hoàn thành", value: "DONE", color: "#b7eb8f" },
+  { label: "Đã hủy", value: "CANCELED", color: "#e8e8e8" },
 ];
 
 // 🔁 Thời gian auto refresh (ms)
@@ -209,8 +210,15 @@ export default function KitchenPage() {
   // ------------------------------------------------------------
   const filteredOrders = orders
     .map((order) => {
-      // Nếu không filter → giữ nguyên toàn bộ items
-      if (!statusFilter) return order;
+      // Nếu không filter → giữ nguyên toàn bộ items trừ DONE/CANCELLED
+      if (statusFilter === "ALL") {
+        return {
+        ...order,
+        items: order.items.filter(item =>
+            ["NEW", "SENT_TO_KITCHEN", "COOKING"].includes(item.status)
+        )
+        };
+      };
 
       // Nếu có filter → chỉ giữ lại những món có status tương ứng
       const filteredItems = (order.items || []).filter(
@@ -265,17 +273,29 @@ export default function KitchenPage() {
               <Col>
                 <Space>
                   {/* Filter theo trạng thái món */}
-                  <Segmented
-                    options={STATUS_OPTIONS.map((opt) => ({
-                      label: opt.label,
-                      value: opt.value,
-                    }))}
-                    value={statusFilter}
-                    onChange={handleChangeFilter}
-                  />
+                  <Space>
+                    {STATUS_OPTIONS.map((opt) => (
+                      <div
+                        key={opt.value ?? "ALL"}
+                        className={
+                          "kitchen-filter-tab " +
+                          (opt.value ?? "ALL") +
+                          (statusFilter === opt.value ? " active" : "")
+                        }
+                        onClick={() => handleChangeFilter(opt.value)}
+                      >
+                        {opt.label}
+                      </div>
+                    ))}
 
-                  {/* Nút Xóa lọc theo Rule filter FE */}
-                  <Button onClick={handleResetFilter}>Xóa lọc</Button>
+                    {/* Nút Xóa lọc filter FE */}
+                    <Button
+                      className="kitchen-filter-reset"
+                      onClick={handleResetFilter}
+                    >
+                      Xóa lọc
+                    </Button>
+                  </Space>                 
                 </Space>
               </Col>
 
@@ -295,14 +315,23 @@ export default function KitchenPage() {
             {filteredOrders.length === 0 ? (
               <Empty description="Không có order nào trong bếp" />
             ) : (
-              filteredOrders.map((order) => (
-                <KitchenOrderCard
-                  key={order.orderId}
-                  order={order}
-                  onChangeStatus={handleChangeStatus}
-                  onCancelItem={handleCancelItem}
-                />
-              ))
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
+                  gap: "16px",
+                  padding: "8px 0",
+                }}
+              >
+                {filteredOrders.map((order) => (
+                  <KitchenOrderCard
+                    key={order.orderId}
+                    order={order}
+                    onChangeStatus={handleChangeStatus}
+                    onCancelItem={handleCancelItem}
+                  />
+                ))}
+              </div>
             )}
           </Spin>
         </Col>

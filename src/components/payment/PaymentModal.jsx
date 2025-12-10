@@ -63,6 +63,9 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
   // Loading khi bấm "Xác nhận thanh toán"
   const [submitting, setSubmitting] = useState(false);
 
+  //Loading tiền thừa khi nhập tiền khách thanh toán
+  const [customerPaid, setCustomerPaid] = useState(0);
+
   // ==========================================================
   // KHI MỞ / ĐÓNG MODAL → RESET FORM + TÍNH LẠI TIỀN
   // ==========================================================
@@ -177,6 +180,7 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
         amount: finalAmount,
         method: values.method,
         note: values.note || null,
+        customerPaid: values.customerPaid,
       };
 
       // Nếu BE đã chấp nhận voucher (appliedVoucherCode != null)
@@ -377,21 +381,65 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
       </div>
 
       {/* Form chọn phương thức thanh toán */}
-      <Form layout="vertical" form={form} onFinish={handleSubmit}>
-        <Form.Item
-          label="Phương thức thanh toán"
-          name="method"
-          rules={[{ required: true, message: "Vui lòng chọn phương thức" }]}
+      <Form 
+        layout="vertical" 
+        form={form}
+        onValuesChange={(changed, all) => {
+          if (changed.customerPaid !== undefined) {
+            setCustomerPaid(Number(changed.customerPaid || 0));
+          }
+        }}
+        onFinish={handleSubmit}
         >
-          <Select
-            placeholder="Chọn phương thức"
-            options={[
-              { value: "CASH", label: "Tiền mặt" },
-              { value: "MOMO", label: "Momo" },
-              { value: "BANK_TRANSFER", label: "Chuyển khoản" },
+          <Form.Item
+            label="Phương thức thanh toán"
+            name="method"
+            rules={[{ required: true, message: "Vui lòng chọn phương thức" }]}
+          >
+            <Select
+              placeholder="Chọn phương thức"
+              options={[
+                { value: "CASH", label: "Tiền mặt" },
+                { value: "MOMO", label: "Momo" },
+                { value: "BANK_TRANSFER", label: "Chuyển khoản" },
+              ]}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Khách trả"
+            name="customerPaid"
+            rules={[
+              { required: true, message: "Vui lòng nhập số tiền khách trả" },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  const finalAmount =
+                    calcResult?.finalAmount ?? order.totalPrice ?? 0;
+
+                  if (!value || Number(value) < finalAmount) {
+                    return Promise.reject(
+                      new Error("Số tiền khách trả phải ≥ tổng phải thanh toán")
+                    );
+                  }
+                  return Promise.resolve();
+                },
+              }),
             ]}
-          />
+        >
+          <Input type="number" min={0} placeholder="Nhập số tiền khách đưa" />
         </Form.Item>
+
+        {calcResult && form.getFieldValue("customerPaid") && (
+          <div style={{ marginBottom: 12 }}>
+            <Text strong>Tiền thừa: </Text>
+            <Text type="success" style={{ fontSize: 16 }}>
+              {(
+                Number(form.getFieldValue("customerPaid") ?? 0) -
+                Number(calcResult.finalAmount ?? 0)
+              ).toLocaleString("vi-VN")} đ
+            </Text>
+          </div>
+        )}
 
         <Form.Item label="Ghi chú" name="note">
           <Input.TextArea

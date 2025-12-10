@@ -190,22 +190,39 @@ const PosTablePage = () => {
   // Tính toán danh sách bàn sau khi áp dụng filter
   // ----------------------------------------------------------
   const filteredTables = useMemo(() => {
-    return tables.filter((table) => {
-      // Filter theo trạng thái bàn
-      if (statusFilter !== "ALL" && table.status !== statusFilter) {
-        return false;
-      }
+    const result = tables
+      .filter((table) => {
+        // Filter theo trạng thái bàn
+        if (statusFilter !== "ALL" && table.status !== statusFilter) {
+          return false;
+        }
 
-      // Filter theo từ khoá tìm kiếm
-      if (searchKeyword?.trim()) {
-        const keyword = searchKeyword.trim().toLowerCase();
-        const name = (table.tableName || "").toLowerCase();
-        const code = (table.orderCode || "").toLowerCase(); // cho phép tìm theo mã order luôn
-        return name.includes(keyword) || code.includes(keyword);
-      }
+        // Filter theo từ khoá tìm kiếm
+        if (searchKeyword?.trim()) {
+          const keyword = searchKeyword.trim().toLowerCase();
+          const name = (table.tableName || "").toLowerCase();
+          const code = (table.orderCode || "").toLowerCase();
+          return name.includes(keyword) || code.includes(keyword);
+        }
 
-      return true;
-    });
+        return true;
+      })
+      // -----------------------------------------
+      // ⭐ SORT THEO TÊN BÀN (VD: "Bàn 1", "Bàn 2", ...)
+      // -----------------------------------------
+      .sort((a, b) => {
+        const extractNumber = (str) => {
+          const match = str.match(/\d+/);
+          return match ? parseInt(match[0], 10) : 0;
+        };
+
+        const numA = extractNumber(a.tableName);
+        const numB = extractNumber(b.tableName);
+
+        return numA - numB;
+      });
+
+    return result;
   }, [tables, statusFilter, searchKeyword]);
 
   // ----------------------------------------------------------

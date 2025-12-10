@@ -85,3 +85,9 @@ export const getOrderByTableId = (tableId) =>
 export const updateOrderItems = (orderId, payload) => {
   return api.put(`/api/orders/${orderId}`, payload);
 };
+
+// 🔹 Tạo đơn Simple POS (simple-create)
+export function simpleCreateOrder(payload) {
+  // payload: { tableId, items: [{ dishId, quantity, note }] }
+  return api.post("/api/orders/simple-create", payload);
+}

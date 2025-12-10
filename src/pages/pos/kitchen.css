@@ -1,0 +1,106 @@
+/* ================================
+   TAB FILTTER CHUNG
+   ================================ */
+.kitchen-filter-tab {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid #d9d9d9;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  user-select: none;
+  color: #333;
+  background: #fafafa;
+  display: inline-block;
+}
+
+.kitchen-filter-tab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* ================================
+   MÀU MẶC ĐỊNH (NHẠT)
+   ================================ */
+.kitchen-filter-tab.NEW {
+  background: #fff7d1;
+}
+
+.kitchen-filter-tab.SENT_TO_KITCHEN {
+  background: #e6f5ff;
+}
+
+.kitchen-filter-tab.COOKING {
+  background: #ffeaea;
+}
+
+.kitchen-filter-tab.DONE {
+  background: #e9ffe6;
+}
+
+.kitchen-filter-tab.CANCELED {
+  background: #f4f4f4;
+}
+
+/* Tất cả */
+.kitchen-filter-tab.ALL {
+  background: #f2f2f2;
+}
+
+/* ================================
+   MÀU ACTIVE (ĐẬM HƠN)
+   ================================ */
+.kitchen-filter-tab.active.NEW {
+  background: #ffe58f !important;
+  border-color: #ffcc00;
+  font-weight: 600;
+}
+
+.kitchen-filter-tab.active.SENT_TO_KITCHEN {
+  background: #91d5ff !important;
+  border-color: #40a9ff;
+  font-weight: 600;
+}
+
+.kitchen-filter-tab.active.COOKING {
+  background: #ffa39e !important;
+  border-color: #ff7875;
+  font-weight: 600;
+}
+
+.kitchen-filter-tab.active.DONE {
+  background: #b7eb8f !important;
+  border-color: #52c41a;
+  font-weight: 600;
+}
+
+.kitchen-filter-tab.active.CANCELED {
+  background: #d9d9d9 !important;
+  border-color: #bfbfbf;
+  font-weight: 600;
+}
+
+.kitchen-filter-tab.active.ALL {
+  background: #d9d9d9 !important;
+  border-color: #999;
+  font-weight: 600;
+}
+/* Nút xóa lọc */
+.kitchen-filter-reset {
+  padding: 6px 14px !important;
+  border-radius: 8px !important;
+  transition: 0.22s;
+}
+
+.kitchen-filter-reset:hover {
+  background: #ffd8bf !important;
+  border-color: #ffa39e !important;
+}
+
+
+/* KitchenOrderCard Hover qua các item */
+.kitchen-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
