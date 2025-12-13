@@ -12,7 +12,12 @@
 // Lưu ý:
 //  - Không thay đổi gì tới PaymentPage hiện tại
 //  - Toàn bộ comment tiếng Việt (Rule 13)
-//  - Tất cả logic tính tiền nằm ở BE, FE chỉ hiển thị kết quả
+//  - Tất cả logic TÍNH TOÁN SỐ TIỀN nằm ở BE (source-of-truth)
+//  - FE chỉ:
+//      + gửi input (member, voucher, redeem)
+//      + hiển thị kết quả calc từ BE
+//      + validate UI cơ bản (tiền khách trả)
+
 // --------------------------------------------------------------
 
 import {
@@ -24,12 +29,15 @@ import {
   Typography,
   message,
   Spin,
+  Card,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { createPayment, calcPayment } from "../../api/paymentApi";
 import { getInvoiceByOrderId } from "../../api/invoiceApi";
+
+import { getMemberById, getActiveMemberByPhone } from "../../api/memberApi";
 
 const { Text } = Typography;
 
@@ -66,82 +74,129 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
   //Loading tiền thừa khi nhập tiền khách thanh toán
   const [customerPaid, setCustomerPaid] = useState(0);
 
+  // ===============================
+  // STATE MEMBER (LOYALTY)
+  // ===============================
+  const [memberPhone, setMemberPhone] = useState("");
+  const [selectedMember, setSelectedMember] = useState(null); // MemberResponse
+  const [searchingMember, setSearchingMember] = useState(false);
+
+  // ===============================
+  // STATE REDEEM POINT
+  // ===============================
+
+  // Số điểm hội viên muốn dùng để giảm giá
+  const [redeemPoint, setRedeemPoint] = useState(0);
+
   // ==========================================================
-  // KHI MỞ / ĐÓNG MODAL → RESET FORM + TÍNH LẠI TIỀN
+  // REF dùng để chống race-condition khi gọi calcPayment
+  // Mỗi lần gọi calc → tăng requestId
+  // Chỉ nhận response của request mới nhất
+  // ==========================================================
+  const calcRequestIdRef = useRef(0);
+
+  // ==========================================================
+  // KHI MỞ PAYMENT MODAL
+  // - Reset state
+  // - Load member (nếu có)
+  // - BẮT BUỘC gọi calcPayment để lấy VAT / discount mặc định
   // ==========================================================
   useEffect(() => {
-    if (open && order) {
-      // Set mặc định phương thức thanh toán + ghi chú
-      form.setFieldsValue({
-        method: "CASH",
-        note: `Thanh toán cho order ${order.orderCode}`,
-      });
+    if (!open || !order) return;
 
-      // Reset voucher + kết quả tính tiền
-      setVoucherCode("");
-      setCalcResult(null);
+    // Set form mặc định
+    form.setFieldsValue({
+      method: "CASH",
+      note: `Thanh toán cho order ${order.orderCode}`,
+    });
 
-      // Khi mở modal lần đầu → tính tiền với "không voucher"
-      handleCalcPayment(order.id, "");
-    } else {
-      // Khi đóng modal → reset toàn bộ
-      form.resetFields();
-      setVoucherCode("");
-      setCalcResult(null);
-      setCalculating(false);
-      setSubmitting(false);
+    // Reset state
+    setVoucherCode("");
+    setRedeemPoint(0);
+    setCalcResult(null);
+
+    // Nếu order đã có member → load
+    if (order.memberId) {
+      loadMemberById(order.memberId);
     }
-  }, [open, order, form]);
+
+    // ✅ LUÔN LUÔN TÍNH TIỀN KHI MỞ MODAL
+    triggerCalcPayment();
+
+    // Cleanup khi đóng modal
+    return () => {
+      form.resetFields();
+      setCalcResult(null);
+      setRedeemPoint(0);
+    };
+  }, [open, order]);
 
   // ==========================================================
-  // HÀM GỌI API calcPayment (DÙNG LẠI Ở NHIỀU CHỖ)
+  // TỰ ĐỘNG TÍNH LẠI TIỀN KHI:
+  //  - Đổi hội viên
+  //  - Đổi điểm redeem
+  //  - Đổi voucher
   // ==========================================================
-  const handleCalcPayment = async (orderId, voucher) => {
-    if (!orderId) return;
+  useEffect(() => {
+    if (!open || !order) return;
+    triggerCalcPayment();
+  }, [selectedMember?.id, redeemPoint, voucherCode]);
+
+  // ==========================================================
+  // HÀM DUY NHẤT dùng để tính tiền (SOURCE OF TRUTH)
+  // ----------------------------------------------------------
+  // Quy ước:
+  //  - MỌI thay đổi ảnh hưởng tiền → GỌI HÀM NÀY
+  //  - FE KHÔNG tự tính, chỉ hiển thị kết quả từ BE
+  // ==========================================================
+  const triggerCalcPayment = useCallback(async () => {
+    if (!order?.id) return;
+
+    const requestId = ++calcRequestIdRef.current;
 
     try {
       setCalculating(true);
 
+      // ===============================
+      // Build payload gửi BE
+      // ===============================
       const payload = {
-        orderId,
+        orderId: order.id,
       };
 
-      // Chỉ gửi voucherCode nếu có nhập (trim khác rỗng)
-      if (voucher && voucher.trim()) {
-        payload.voucherCode = voucher.trim();
+      // Nếu có hội viên
+      if (selectedMember?.id) {
+        payload.memberId = selectedMember.id;
+      }
+
+      // Nếu có dùng điểm
+      if (redeemPoint > 0) {
+        payload.redeemPoint = redeemPoint;
+      }
+
+      // Nếu có voucher
+      if (voucherCode?.trim()) {
+        payload.voucherCode = voucherCode.trim();
       }
 
       const res = await calcPayment(payload);
-
-      // BE có thể trả data trực tiếp (res) hoặc bọc trong res.data
       const data = res?.data ?? res;
 
-      // Lưu lại kết quả tính tiền vào state
-      setCalcResult(data);
+      // ===============================
+      // Chống race-condition:
+      // chỉ nhận response mới nhất
+      // ===============================
+      if (requestId !== calcRequestIdRef.current) return;
 
-      // Nếu có voucher, hiển thị message tương ứng
-      if (voucher && voucher.trim()) {
-        if (data.appliedVoucherCode) {
-          message.success(
-            `Áp dụng voucher ${data.appliedVoucherCode} thành công`
-          );
-        } else {
-          message.warning("Mã voucher không hợp lệ hoặc không được áp dụng");
-        }
-      }
+      setCalcResult(data);
     } catch (err) {
-      console.error(err);
-      
-      /*message.error(
-        err?.response?.data?.message ||
-          "Không thể tính tiền thanh toán. Vui lòng thử lại"
-      );
-      */
-      // Nếu lỗi → giữ nguyên calcResult cũ (nếu có), không reset cứng
+      console.error("Lỗi calcPayment:", err);
     } finally {
-      setCalculating(false);
+      if (requestId === calcRequestIdRef.current) {
+        setCalculating(false);
+      }
     }
-  };
+  }, [order?.id, selectedMember?.id, redeemPoint, voucherCode]);
 
   // ==========================================================
   // XỬ LÝ KHI BẤM NÚT "ÁP DỤNG" VOUCHER
@@ -154,8 +209,8 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
       return;
     }
 
-    // Gọi lại calcPayment với voucher hiện tại
-    await handleCalcPayment(order.id, voucherCode);
+    // Gọi triggerCalcPayment
+    triggerCalcPayment();
   };
 
   // ==========================================================
@@ -182,6 +237,14 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
         note: values.note || null,
         customerPaid: values.customerPaid,
       };
+
+      if (selectedMember?.id) {
+        payload.memberId = selectedMember.id;
+      }
+
+      if (redeemPoint > 0) {
+        payload.redeemPoint = redeemPoint;
+      }
 
       // Nếu BE đã chấp nhận voucher (appliedVoucherCode != null)
       // → gửi kèm voucherCode cho createPayment
@@ -229,6 +292,58 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
     }
   };
 
+    // ==========================================================
+    // XỬ LÝ Load member theo ID (dùng khi order đã có memberId)
+    // ==========================================================
+    const loadMemberById = async (memberId) => {
+      try {
+        // ✅ Gọi đúng API getMemberById thay vì searchMemberByPhone
+        const res = await getMemberById(memberId);
+        setSelectedMember(res);
+        setMemberPhone(res.phone); // Đổ luôn SĐT ra ô input để user thấy
+      } catch (e) {
+        console.error("Không load được hội viên:", e);
+      }
+    };
+
+  // ==========================================================
+  // 🟢 TÌM HỘI VIÊN (CHỈ ACTIVE) – DÙNG RIÊNG CHO PAYMENT / POS
+  // ==========================================================
+  // Logic:
+  // 1. Nhập SĐT
+  // 2. Gọi API getActiveMemberByPhone
+  // 3. Nếu member bị disable → BE trả lỗi → FE báo không tìm thấy
+  // ==========================================================
+  const handleSearchMember = async () => {
+    // ❗ Validate input
+    if (!memberPhone.trim()) {
+      message.warning("Vui lòng nhập số điện thoại hội viên");
+      return;
+    }
+
+    try {
+      setSearchingMember(true);
+
+      // ✅ GỌI API CHỈ TRẢ HỘI VIÊN ACTIVE
+      const res = await getActiveMemberByPhone(memberPhone.trim());
+
+      // ✅ Gán đúng MemberResponse
+      setSelectedMember(res);
+
+      message.success(`Tìm thấy hội viên: ${res.name}`);
+    } catch (err) {
+      // ❌ Không tìm thấy hoặc hội viên đã bị vô hiệu hóa
+      setSelectedMember(null);
+
+      message.warning(
+        err?.response?.data?.message ||
+          "Không tìm thấy hội viên hoặc hội viên đã bị vô hiệu hóa"
+      );
+    } finally {
+      setSearchingMember(false);
+    }
+  };
+
   // ----------------------------------------------------------
   // Nếu chưa có order → không render gì (phòng bug null)
   // ----------------------------------------------------------
@@ -245,6 +360,7 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
       );
       const voucherDiscount = Number(calcResult.voucherDiscount ?? 0);
       const defaultDiscount = Number(calcResult.defaultDiscount ?? 0);
+      const redeemDiscount = Number(calcResult.redeemDiscount ?? 0);
       const totalDiscount = Number(calcResult.totalDiscount ?? 0);
       const vatPercent = Number(calcResult.vatPercent ?? 0);
       const vatAmount = Number(calcResult.vatAmount ?? 0);
@@ -278,6 +394,17 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
                 định: {defaultDiscount.toLocaleString("vi-VN")} đ)
               </Text>
               <br />
+
+              {/* Số điểm point sử dụng*/}
+              {redeemDiscount > 0 && (
+                <>
+                  <Text strong>Dùng điểm: </Text>
+                  <Text type="danger">
+                    -{redeemDiscount.toLocaleString("vi-VN")} đ
+                  </Text>
+                  <br />
+                </>
+              )}
             </>
           )}
 
@@ -353,6 +480,81 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
             renderTotalInfo()
           )}
         </div>
+      </div>
+
+      {/* =============================== */}
+      {/* TÌM HỘI VIÊN */}
+      {/* =============================== */}
+      <div style={{ marginBottom: 16 }}>
+        <Text strong>Số điện thoại hội viên:</Text>
+        <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+          <Input
+            placeholder="Nhập SĐT hội viên"
+            value={memberPhone}
+            onChange={(e) => {
+              // ✅ Khi user thay đổi SĐT → reset hội viên đã chọn
+              setMemberPhone(e.target.value);
+              setSelectedMember(null);
+              setRedeemPoint(0); // ✅ reset điểm khi đổi hội viên
+            }}
+          />
+          <Button loading={searchingMember} onClick={handleSearchMember}>
+            Tìm
+          </Button>
+        </div>
+
+        {/* Nếu tìm thấy hội viên */}
+        {selectedMember && (
+          <Card
+            size="small"
+            style={{ marginTop: 10, background: "#f6ffed", borderColor: "#b7eb8f" }}
+          >
+            <Text strong>{selectedMember.name}</Text>
+            <br />
+            <Text>SĐT: {selectedMember.phone}</Text>
+            <br />
+            <Text>Tier: {selectedMember.tier}</Text>
+            <br />
+            <Text>Điểm hiện tại: {selectedMember.totalPoint}</Text>
+          </Card>
+        )}
+
+        {/* =============================== */}
+        {/* REDEEM POINT (DÙNG ĐIỂM) */}
+        {/* =============================== */}
+        {selectedMember && (
+          <div style={{ marginBottom: 16 }}>
+            <Text strong>Dùng điểm hội viên:</Text>
+
+            <Input
+              type="number"
+              min={0}
+              max={selectedMember.totalPoint}
+              value={redeemPoint}
+              placeholder="Nhập số điểm muốn dùng"
+              onChange={(e) => {
+                const value = Number(e.target.value || 0);
+
+                // ❌ Không cho nhập âm
+                if (value < 0) return;
+
+                // ❌ Không cho nhập quá số điểm hiện có
+                if (value > selectedMember.totalPoint) {
+                  message.warning("Số điểm vượt quá điểm hiện có của hội viên");
+                  return;
+                }
+
+                // ✅ HỢP LỆ → SET STATE
+                setRedeemPoint(value);
+              }}
+              style={{ marginTop: 8 }}
+            />
+
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Điểm hiện có: {selectedMember.totalPoint}
+            </Text>
+          </div>
+        )}
       </div>
 
       {/* Khu vực nhập và áp dụng voucher */}

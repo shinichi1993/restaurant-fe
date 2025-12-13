@@ -22,6 +22,7 @@ import PermissionPage from "../pages/permission/PermissionPage";
 import AuditLogPage from "../pages/audit/AuditLogPage";
 import TablePage from "../pages/table/TablePage"; 
 import AdvancedSettingsPage from "../pages/settings/AdvancedSettingsPage";
+import MemberPage from "../pages/member/MemberPage";
 
 // ⭐ THÊM IMPORT POS ROUTES
 import { renderPosRoutes } from "./PosRoutes";
@@ -85,6 +86,8 @@ export default function AppRoutes() {
 
             {/* Settings */}
             <Route path="settings" element={<AdvancedSettingsPage  />} />
+
+            <Route path="members" element={<MemberPage />} />
 
           </Route>
         </Route>

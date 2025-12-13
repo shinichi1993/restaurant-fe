@@ -29,6 +29,7 @@ export default function AppSidebar() {
   const menuItems = [
     { key: "/dashboard", icon: <PieChartOutlined />, label: "Dashboard" },
     { key: "/users", icon: <UserOutlined />, label: "Người dùng" },
+    { key: "/members", icon: <UserOutlined />, label: "Hội viên" },
     { key: "/categories", icon: <AppstoreOutlined />, label: "Danh mục" },
     { key: "/ingredients", icon: <ShopOutlined />, label: "Nguyên liệu" },
     { key: "/dishes", icon: <CoffeeOutlined />, label: "Món ăn" },

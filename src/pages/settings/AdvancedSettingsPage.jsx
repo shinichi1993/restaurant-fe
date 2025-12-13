@@ -54,8 +54,10 @@ const TAB_KEYS = {
   LOYALTY: [
     "loyalty.enabled",
     "loyalty.earn_rate",
-    "loyalty.redeem_rate",
-    "loyalty.min_redeem_point",
+
+    "loyalty.redeem.enabled",
+    "loyalty.redeem.rate",
+    "loyalty.redeem.max_percent",
   ],
   POS: [
     "pos.auto_send_kitchen",                // Tự động gửi order xuống bếp
@@ -396,12 +398,20 @@ const AdvancedSettingsPage = () => {
 
                 // ======================================================
                 // TAB 3: LOYALTY
+                //  - loyalty.enabled
+                //  - loyalty.earn_rate
+                //  - loyalty.redeem.enabled
+                //  - loyalty.redeem.rate
+                //  - loyalty.redeem.max_percent
                 // ======================================================
                 {
                   key: "LOYALTY",
                   label: "Loyalty (Tích điểm)",
                   children: (
                     <>
+                      {/* ================================================== */}
+                      {/* 1. BẬT / TẮT TÍNH NĂNG LOYALTY */}
+                      {/* ================================================== */}
                       <Form.Item
                         label="Bật tính năng Loyalty"
                         name="loyalty.enabled"
@@ -411,6 +421,9 @@ const AdvancedSettingsPage = () => {
                         <Switch />
                       </Form.Item>
 
+                      {/* ================================================== */}
+                      {/* 2. TỶ LỆ TÍCH ĐIỂM */}
+                      {/* ================================================== */}
                       <Form.Item
                         label="Tỷ lệ tích điểm (điểm trên mỗi 1.000đ)"
                         name="loyalty.earn_rate"
@@ -423,29 +436,42 @@ const AdvancedSettingsPage = () => {
                         />
                       </Form.Item>
 
+                      {/* ================================================== */}
+                      {/* 3. BẬT / TẮT DÙNG ĐIỂM (REDEEM) */}
+                      {/* ================================================== */}
                       <Form.Item
-                        label="Tỷ lệ quy đổi điểm (giá trị tiền trên 1 điểm)"
-                        name="loyalty.redeem_rate"
-                        tooltip="Ví dụ: nhập 1000 nghĩa là 1 điểm đổi được 1.000đ."
+                        label="Bật dùng điểm (Redeem)"
+                        name="loyalty.redeem.enabled"
+                        valuePropName="checked"
                       >
-                        <InputNumber
-                          min={0}
-                          step={100}
-                          style={{ width: "100%" }}
-                        />
+                        <Switch />
                       </Form.Item>
 
+                      {/* ================================================== */}
+                      {/* 4. GIÁ TRỊ QUY ĐỔI ĐIỂM → TIỀN */}
+                      {/* ================================================== */}
                       <Form.Item
-                        label="Điểm tối thiểu để được redeem"
-                        name="loyalty.min_redeem_point"
+                        label="Giá trị tiền cho 1 điểm (VNĐ)"
+                        name="loyalty.redeem.rate"
+                        tooltip="Ví dụ: 1000 = 1 điểm đổi 1.000đ"
                       >
-                        <InputNumber
-                          min={0}
-                          step={1}
-                          style={{ width: "100%" }}
-                        />
+                        <InputNumber min={0} step={100} style={{ width: "100%" }} />
                       </Form.Item>
 
+                      {/* ================================================== */}
+                      {/* 5. GIỚI HẠN TỐI ĐA ĐƯỢC REDEEM */}
+                      {/* ================================================== */}
+                      <Form.Item
+                        label="Tỷ lệ tối đa được redeem (%)"
+                        name="loyalty.redeem.max_percent"
+                        tooltip="Ví dụ: 50 = tối đa dùng điểm cho 50% hóa đơn"
+                      >
+                        <InputNumber min={0} max={100} step={5} style={{ width: "100%" }} />
+                      </Form.Item>
+
+                      {/* ================================================== */}
+                      {/* NÚT LƯU CẤU HÌNH LOYALTY */}
+                      {/* ================================================== */}
                       {renderSaveButton("LOYALTY")}
                     </>
                   ),
