@@ -23,6 +23,8 @@ import AuditLogPage from "../pages/audit/AuditLogPage";
 import TablePage from "../pages/table/TablePage"; 
 import AdvancedSettingsPage from "../pages/settings/AdvancedSettingsPage";
 import MemberPage from "../pages/member/MemberPage";
+import ForbiddenPage from "../pages/common/ForbiddenPage";
+import PermissionRoute from "../components/common/PermissionRoute";
 
 // ⭐ THÊM IMPORT POS ROUTES
 import { renderPosRoutes } from "./PosRoutes";
@@ -56,8 +58,11 @@ export default function AppRoutes() {
 
             {/* Category & Dish */}
             <Route path="categories" element={<CategoryPage />} />
-            <Route path="dishes" element={<DishPage />} />
 
+            <Route element={<PermissionRoute permission="DISH_VIEW" />}>
+              <Route path="dishes" element={<DishPage />} />
+            </Route>
+            
             {/* Recipe */}
             <Route path="recipes" element={<RecipePage />} />
 
@@ -88,6 +93,8 @@ export default function AppRoutes() {
             <Route path="settings" element={<AdvancedSettingsPage  />} />
 
             <Route path="members" element={<MemberPage />} />
+
+            <Route path="/403" element={<ForbiddenPage />} />
 
           </Route>
         </Route>

@@ -108,7 +108,11 @@ api.interceptors.response.use(
       // Lưu accessToken mới
       localStorage.setItem("accessToken", res.data.accessToken);
 
-      // Cập nhật header mặc định
+      // 🔴 BẮT BUỘC: cập nhật Authorization cho request gốc
+      originalRequest.headers["Authorization"] =
+        "Bearer " + res.data.accessToken;
+
+      // (giữ lại – không sai)
       api.defaults.headers["Authorization"] =
         "Bearer " + res.data.accessToken;
 

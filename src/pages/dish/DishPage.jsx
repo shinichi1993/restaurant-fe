@@ -15,6 +15,8 @@
 //  - Hiển thị ảnh món (nếu có imageUrl)
 //  - Không bọc AdminLayout (Rule 14)
 // ---------------------------------------------------------------------
+import { hasPermission } from "../../hooks/usePermission";
+import ForbiddenResult from "../../components/common/ForbiddenResult";
 
 import { useEffect, useState } from "react";
 import {
@@ -43,6 +45,10 @@ import { getCategories } from "../../api/categoryApi";
 import DishFormModal from "../../components/dish/DishFormModal";
 
 export default function DishPage() {
+  // ❌ Không có quyền xem danh sách món
+  if (!hasPermission("DISH_VIEW")) {
+    return <ForbiddenResult />;
+  }
   // State danh sách món + loading
   const [dishes, setDishes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -183,22 +189,26 @@ export default function DishPage() {
       key: "action",
       render: (_, record) => (
         <Space>
-          <Button
-            type="link"
-            onClick={() => {
-              setEditingDish(record);
-              setOpenForm(true);
-            }}
-          >
-            Sửa
-          </Button>
-          <Button
-            danger
-            type="link"
-            onClick={() => handleDelete(record.id)}
-          >
-            Xóa
-          </Button>
+          {hasPermission("DISH_UPDATE") && 
+            <Button
+              type="link"
+              onClick={() => {
+                setEditingDish(record);
+                setOpenForm(true);
+              }}
+            >
+              Sửa
+            </Button>
+          }
+          {hasPermission("DISH_DELETE") && 
+            <Button
+              danger
+              type="link"
+              onClick={() => handleDelete(record.id)}
+            >
+              Xóa
+            </Button>
+          }
         </Space>
       ),
     },
@@ -275,16 +285,18 @@ export default function DishPage() {
       {/* Hàng nút Thêm món */}
       <Row style={{ marginBottom: 16 }}>
         <Col span={24} style={{ textAlign: "right" }}>
-          <Button
+          {hasPermission("DISH_CREATE") && (
+            <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => {
               setEditingDish(null);
               setOpenForm(true);
             }}
-          >
+            >
             Thêm món ăn
-          </Button>
+            </Button>
+          )}
         </Col>
       </Row>
 

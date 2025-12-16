@@ -27,6 +27,9 @@ export default function LoginPage() {
       localStorage.setItem("accessToken", res.accessToken);
       localStorage.setItem("refreshToken", res.refreshToken);
 
+      // ✅ Module 4.1: lưu permissions
+      localStorage.setItem("permissions", JSON.stringify(res.permissions || []));
+
       message.success("Đăng nhập thành công");
 
       navigate("/dashboard"); // Điều hướng Dashboard

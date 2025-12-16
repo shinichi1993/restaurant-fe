@@ -1,12 +1,8 @@
 // UserFormModal.jsx – Modal thêm / sửa người dùng
 // --------------------------------------------------------------------
-// Dùng trong UserPage.jsx
-// Nếu có props.user → modal ở chế độ SỬA
-// Nếu user = null → modal ở chế độ THÊM MỚI
-// --------------------------------------------------------------------
-// Form theo đúng BE DTO:
-//  - THÊM: username, password, fullName, role
-//  - SỬA: fullName, role, status
+// Quy ước Phase 4.1:
+//  - TẠO USER: chỉ tạo app_user
+//  - GÁN ROLE: xử lý riêng qua user_role
 // --------------------------------------------------------------------
 
 import {
@@ -17,54 +13,76 @@ import {
   Button,
   message,
 } from "antd";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-import {
-  createUser,
-  updateUser,
-} from "../../api/userApi";
+import { createUser, updateUser } from "../../api/userApi";
+import { getRoles } from "../../api/roleApi";
+import { updateUserRoles } from "../../api/userApi"; // 👈 thêm
 
 export default function UserFormModal({ open, onClose, user, reload }) {
   const [form] = Form.useForm();
+  const [roleList, setRoleList] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // --------------------------------------------------------------
-  // Khi mở modal → nếu là sửa thì fill dữ liệu vào form
-  // --------------------------------------------------------------
+  // -----------------------------------------------------------
+  // Load danh sách role từ BE
+  // -----------------------------------------------------------
   useEffect(() => {
+    const loadRoles = async () => {
+      const data = await getRoles();
+      setRoleList(data || []);
+    };
+    loadRoles();
+  }, []);
+
+  // -----------------------------------------------------------
+  // Khi mở modal:
+  //  - SỬA → fill form
+  //  - THÊM → reset form
+  // -----------------------------------------------------------
+  useEffect(() => {
+    if (!open) return;
+
     if (user) {
       form.setFieldsValue({
         username: user.username,
         fullName: user.fullName,
-        role: user.role,
+        role: user.roles?.[0] || null,
         status: user.status,
       });
     } else {
       form.resetFields();
     }
-  }, [user, form]);
+  }, [open, user, form]);
 
-  // --------------------------------------------------------------
-  // Submit Form – Tạo mới hoặc cập nhật
-  // --------------------------------------------------------------
+  // -----------------------------------------------------------
+  // Submit form
+  // -----------------------------------------------------------
   const onFinish = async (values) => {
     try {
+      setLoading(true);
+
       if (user) {
-        // -------------------- SỬA USER --------------------
+        // ================== SỬA USER ==================
         await updateUser(user.id, {
           fullName: values.fullName,
-          role: values.role,
           status: values.status,
         });
 
+        // Gán lại role (Phase 4.1)
+        await updateUserRoles(user.id, [values.role]);
+
         message.success("Cập nhật người dùng thành công");
       } else {
-        // -------------------- THÊM MỚI USER --------------------
-        await createUser({
+        // ================== TẠO USER ==================
+        const created = await createUser({
           username: values.username,
           password: values.password,
           fullName: values.fullName,
-          role: values.role,
         });
+
+        // Gán role sau khi tạo
+        await updateUserRoles(created.id, [values.role]);
 
         message.success("Thêm người dùng thành công");
       }
@@ -73,7 +91,9 @@ export default function UserFormModal({ open, onClose, user, reload }) {
       reload();
     } catch (err) {
       console.error(err);
-      //message.error("Lưu dữ liệu thất bại");
+      message.error("Lưu dữ liệu thất bại");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -83,72 +103,58 @@ export default function UserFormModal({ open, onClose, user, reload }) {
       onCancel={onClose}
       title={user ? "Cập nhật người dùng" : "Thêm người dùng"}
       footer={null}
-      destroyOnHidden
+      destroyOnClose // 👈 QUAN TRỌNG
     >
-      <Form
-        layout="vertical"
-        form={form}
-        onFinish={onFinish}
-      >
-        {/* TRƯỜNG USERNAME chỉ hiển thị khi tạo mới */}
+      <Form layout="vertical" form={form} onFinish={onFinish}>
         {!user && (
-          <Form.Item
-            label="Tên đăng nhập"
-            name="username"
-            rules={[
-              { required: true, message: "Vui lòng nhập tên đăng nhập" },
-            ]}
-          >
-            <Input placeholder="Nhập username" />
-          </Form.Item>
-        )}
+          <>
+            <Form.Item
+              label="Tên đăng nhập"
+              name="username"
+              rules={[{ required: true }]}
+            >
+              <Input />
+            </Form.Item>
 
-        {/* TRƯỜNG PASSWORD chỉ hiển thị khi tạo mới */}
-        {!user && (
-          <Form.Item
-            label="Mật khẩu"
-            name="password"
-            rules={[
-              { required: true, message: "Vui lòng nhập mật khẩu" },
-            ]}
-          >
-            <Input.Password placeholder="Nhập mật khẩu" />
-          </Form.Item>
+            <Form.Item
+              label="Mật khẩu"
+              name="password"
+              rules={[{ required: true }]}
+            >
+              <Input.Password />
+            </Form.Item>
+          </>
         )}
 
         <Form.Item
           label="Họ tên"
           name="fullName"
-          rules={[
-            { required: true, message: "Vui lòng nhập họ tên" },
-          ]}
+          rules={[{ required: true }]}
         >
-          <Input placeholder="Nhập họ tên" />
+          <Input />
         </Form.Item>
 
         <Form.Item
           label="Vai trò"
           name="role"
-          rules={[{ required: true, message: "Vui lòng chọn vai trò" }]}
+          rules={[{ required: true }]}
         >
           <Select
             placeholder="Chọn vai trò"
-            options={[
-              { value: "ADMIN", label: "ADMIN" },
-              { value: "STAFF", label: "Nhân viên" },
-            ]}
+            options={roleList.map((r) => ({
+              value: r.code,
+              label: r.name,
+            }))}
           />
         </Form.Item>
 
-        {/* TRƯỜNG TRẠNG THÁI chỉ hiển thị khi SỬA */}
         {user && (
           <Form.Item
             label="Trạng thái"
             name="status"
-            rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
+            rules={[{ required: true }]}
           >
             <Select
-              placeholder="Chọn trạng thái"
               options={[
                 { value: "ACTIVE", label: "Hoạt động" },
                 { value: "INACTIVE", label: "Ngừng hoạt động" },
@@ -157,12 +163,7 @@ export default function UserFormModal({ open, onClose, user, reload }) {
           </Form.Item>
         )}
 
-        <Button
-          type="primary"
-          htmlType="submit"
-          style={{ marginTop: 10 }}
-          block
-        >
+        <Button type="primary" htmlType="submit" block loading={loading}>
           {user ? "Cập nhật" : "Thêm mới"}
         </Button>
       </Form>

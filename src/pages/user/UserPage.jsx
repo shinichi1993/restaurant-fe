@@ -39,10 +39,19 @@ import {
   deleteUser,
 } from "../../api/userApi";
 
+import { getRoles } from "../../api/roleApi";
+
 import UserFormModal from "../../components/user/UserFormModal";
 import UserDetailModal from "../../components/user/UserDetailModal";
+import UserRoleModal from "../../components/user/UserRoleModal";
 
 export default function UserPage() {
+  const ROLE_COLORS = {
+    ADMIN: "red",
+    MANAGER: "purple",
+    STAFF: "blue",
+    KITCHEN: "orange",
+  };
   // State dữ liệu user
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -58,6 +67,11 @@ export default function UserPage() {
 
   const [openDetail, setOpenDetail] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+
+  // State role
+  const [openRole, setOpenRole] = useState(false);
+  const [roleUser, setRoleUser] = useState(null);
+  const [roleList, setRoleList] = useState([]);
 
   // -----------------------------------------------------------
   // Hàm load danh sách user từ API
@@ -75,8 +89,17 @@ export default function UserPage() {
     }
   };
 
+  // -----------------------------------------------------------
+  // Hàm load danh sách role từ API
+  // -----------------------------------------------------------
+  const loadRoles = async () => {
+    const data = await getRoles();
+    setRoleList(data || []);
+  };
+
   useEffect(() => {
     loadUsers();
+    loadRoles();
   }, []);
 
   // -----------------------------------------------------------
@@ -97,11 +120,14 @@ export default function UserPage() {
   // Data table
   // -----------------------------------------------------------
   const filteredUsers = users.filter((u) => {
+    const roles = u.roles || [];
     const textMatch =
       u.username.toLowerCase().includes(search.toLowerCase()) ||
       u.fullName.toLowerCase().includes(search.toLowerCase());
 
-    const roleMatch = role ? u.role === role : true;
+    const roleMatch = role
+      ? u.roles?.includes(role)
+      : true;
     const statusMatch = status ? u.status === status : true;
 
     return textMatch && roleMatch && statusMatch;
@@ -130,13 +156,16 @@ export default function UserPage() {
     },
     {
       title: "Vai trò",
-      dataIndex: "role",
-      render: (role) =>
-        role === "ADMIN" ? (
-          <Tag color="red">ADMIN</Tag>
-        ) : (
-          <Tag color="blue">STAFF</Tag>
-        ),
+      dataIndex: "roles",
+      render: (roles = []) => (
+        <>
+          {roles.map((r) => (
+            <Tag key={r} color={ROLE_COLORS[r] || "default"} style={{ marginBottom: 4 }}>
+              {r}
+            </Tag>
+          ))}
+        </>
+      ),
     },
     {
       title: "Trạng thái",
@@ -152,6 +181,16 @@ export default function UserPage() {
       title: "Hành động",
       render: (_, record) => (
         <Space>
+          <Button
+            type="link"
+            onClick={() => {
+              setRoleUser(record);
+              setOpenRole(true);
+            }}
+          >
+            Vai trò
+          </Button>
+
           <Button
             type="link"
             onClick={() => {
@@ -189,10 +228,10 @@ export default function UserPage() {
             allowClear
             value={role}
             onChange={(v) => setRole(v)}
-            options={[
-              { value: "ADMIN", label: "ADMIN" },
-              { value: "STAFF", label: "Nhân viên" },
-            ]}
+            options={roleList.map((r) => ({
+              value: r.code,     // VD: ADMIN, MANAGER
+              label: r.name,     // VD: Quản trị hệ thống
+            }))}
           />
         </Col>
 
@@ -272,6 +311,18 @@ export default function UserPage() {
         open={openDetail}
         onClose={() => setOpenDetail(false)}
         user={selectedUser}
+      />
+
+      {/* Modal vai trò nhân viên */}
+      <UserRoleModal
+        open={openRole}
+        onClose={() => {
+          setOpenRole(false);
+          setRoleUser(null);
+        }}
+        user={roleUser}
+        roles={roleList}
+        onUpdated={loadUsers}
       />
     </Card>
   );

@@ -55,3 +55,34 @@ export const changePassword = async (data) => {
   const res = await api.put("/api/users/change-password", data);
   return res.data;
 };
+
+// -------------------------------------------------------------
+// Lấy roles của user
+// GET /api/users/{id}/roles
+// -------------------------------------------------------------
+export const getUserRoles = async (id) => {
+  const res = await api.get(`/api/users/${id}/roles`);
+  return res.data;
+};
+
+// -------------------------------------------------------------
+// Cập nhật roles của user
+// PUT /api/users/{id}/roles
+// payload: { roles: ["ADMIN","STAFF"] }
+// -------------------------------------------------------------
+export const updateUserRoles = async (id, roles = []) => {
+  const res = await api.put(`/api/users/${id}/roles`, { roles });
+  return res.data;
+};
+
+// -------------------------------------------------------------
+// Gán vai trò cho user
+// PUT /api/users/{id}/roles
+// payload: { roles: ["ADMIN", "STAFF"] }
+// -------------------------------------------------------------
+export const assignRolesToUser = async (userId, roles) => {
+  const res = await api.put(`/api/users/${userId}/roles`, {
+    roles,
+  });
+  return res.data;
+};
