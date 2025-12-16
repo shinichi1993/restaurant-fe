@@ -30,6 +30,7 @@ import {
   Tag,
   message,
 } from "antd";
+import { DatePicker, Modal } from "antd";
 
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
@@ -58,8 +59,17 @@ export default function AuditLogPage() {
 
   // Bộ lọc (filter)
   const [entity, setEntity] = useState("");  // filter theo tên entity
-  const [userId, setUserId] = useState("");  // filter theo userId
+  const [username, setUsername] = useState("");  // filter theo username
   const [action, setAction] = useState([]);  // filter theo AuditAction
+
+  // Filter theo khoảng thời gian (Rule 26: dd/MM/yyyy HH:mm)
+  const [dateRange, setDateRange] = useState(null);
+
+  // Dùng để mở modal xem chi tiết audit log
+  const [selectedLog, setSelectedLog] = useState(null);
+
+  // Key dùng để trigger reload dữ liệu (khi filter thay đổi)
+  const [reloadKey, setReloadKey] = useState(0);
 
   // ==================================================================
   // HÀM LOAD DANH SÁCH ACTION TỪ BE
@@ -86,8 +96,16 @@ export default function AuditLogPage() {
         page,           // số trang hiện tại (0-based)
         size: 20,       // fix 20 bản ghi / trang
         entity: entity || null, // nếu trống thì gửi null để BE bỏ qua filter
-        userId: userId || null,
+        username: username || null,
         actions: action.length ? action : null,
+        // Filter theo thời gian – khớp DateTimeUtil BE (Rule 26)
+        fromDate: dateRange
+          ? dateRange[0].format("DD/MM/YYYY HH:mm")
+          : null,
+
+        toDate: dateRange
+          ? dateRange[1].format("DD/MM/YYYY HH:mm")
+          : null,
       };
 
       const res = await searchAuditLogs(params);
@@ -116,7 +134,7 @@ export default function AuditLogPage() {
     // Mỗi khi page đổi → reload data theo page mới
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]); // CHỈ phụ thuộc page, filter do mình control khi bấm nút
+  }, [page,reloadKey]); // CHỈ phụ thuộc page, reload key, filter do mình control khi bấm nút
 
   // ==================================================================
   // ĐỊNH NGHĨA CỘT TABLE
@@ -126,6 +144,11 @@ export default function AuditLogPage() {
       title: "ID",
       dataIndex: "id",
       width: 60,
+      render: (v, record) => (
+        <a onClick={() => setSelectedLog(record)}>
+          {v}
+        </a>
+      ),
     },
     {
       title: "User",
@@ -146,6 +169,11 @@ export default function AuditLogPage() {
       dataIndex: "entityId",
     },
     {
+      title: "IP",
+      dataIndex: "ipAddress",
+      width: 140,
+    },
+    {
       title: "Thời gian",
       dataIndex: "createdAt",
       render: (v) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : ""),
@@ -158,7 +186,7 @@ export default function AuditLogPage() {
   return (
     <Card
       title="Lịch sử Audit Log"
-      variant="outlined"      // chuẩn Rule 27
+      variant="borderless"      // chuẩn Rule 27,  variant="borderless" thì là Rule 29: dùng variant
       style={{ margin: 20 }} // cách lề với layout chính
     >
       {/* ===========================================================
@@ -174,12 +202,24 @@ export default function AuditLogPage() {
           />
         </Col>
 
-        {/* UserId filter */}
+        {/* UserName filter */}
         <Col span={6}>
           <Input
-            placeholder="User ID..."
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
+            placeholder="User name..."
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+        </Col>
+
+        {/* Filter theo khoảng thời gian */}
+        <Col span={6}>
+          <DatePicker.RangePicker
+            style={{ width: "100%" }}
+            showTime
+            format="DD/MM/YYYY HH:mm" // Rule 26
+            value={dateRange}
+            onChange={setDateRange}
+            placeholder={["Từ ngày", "Đến ngày"]}
           />
         </Col>
 
@@ -209,10 +249,7 @@ export default function AuditLogPage() {
             onClick={() => {
               // Reset về trang 0 rồi gọi loadData với filter hiện tại
               setPage(0);
-              // Vì setPage là async, nhưng page=0 thường là giá trị hiện tại khi vừa vào
-              // nên để chắc chắn, gọi loadData thêm 1 lần với filter mới
-              // (trường hợp muốn "strict" hơn có thể bỏ, nhưng dùng thế này là ổn, dễ hiểu)
-              loadData();
+              setReloadKey((k) => k + 1); // trigger search
             }}
           >
             Tìm kiếm
@@ -224,18 +261,19 @@ export default function AuditLogPage() {
           <Button
             block
             onClick={() => {
-              // Reset tất cả filter về mặc định
+              // Reset toàn bộ filter về mặc định
               setEntity("");
-              setUserId("");
-              setAction("");
+              setUsername("");
+              setAction([]);       // FIX BUG
+              setDateRange(null);  // Reset filter ngày
 
               // Reset về trang đầu
               setPage(0);
 
-              // Gọi lại loadData để trả về list mặc định
-              loadData();
+              // Trigger reload danh sách không filter
+              setReloadKey((k) => k + 1);
             }}
-          >
+            >
             Xóa lọc
           </Button>
         </Col>
@@ -256,6 +294,52 @@ export default function AuditLogPage() {
           onChange: (p) => setPage(p - 1), // convert 1-based → 0-based
         }}
       />
+
+      {/* Modal hiển thị thông tin chi tiết Audit log */}
+      <Modal
+        open={!!selectedLog}
+        title="Chi tiết Audit Log"
+        onCancel={() => setSelectedLog(null)}
+        footer={null}
+        width={800}
+      >
+        {selectedLog && (
+          <>
+            <p><b>User:</b> {selectedLog.username}</p>
+            <p><b>Action:</b> {selectedLog.action}</p>
+            <p>
+              <b>Entity:</b> {selectedLog.entity}
+              {selectedLog.entityId ? ` (ID: ${selectedLog.entityId})` : ""}
+            </p>
+            <p><b>IP:</b> {selectedLog.ipAddress}</p>
+            <p><b>User-Agent:</b> {selectedLog.userAgent}</p>
+
+            <h4>Before</h4>
+            <pre style={{ 
+              background: "#f6f6f6",
+              padding: 8,
+              whiteSpace: "pre-wrap",     // ⭐ TỰ XUỐNG DÒNG
+              wordBreak: "break-word",    // ⭐ CẮT CHUỖI DÀI
+              maxHeight: 200,             // ⭐ KHÔNG QUÁ CAO
+              overflowY: "auto",          // ⭐ SCROLL DỌC
+            }}>
+              {selectedLog.beforeData || "—"}
+            </pre>
+
+            <h4>After</h4>
+            <pre style={{ 
+              background: "#f6f6f6",
+              padding: 8,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              maxHeight: 200,
+              overflowY: "auto",
+             }}>
+              {selectedLog.afterData || "—"}
+            </pre>
+          </>
+        )}
+      </Modal>
     </Card>
   );
 }

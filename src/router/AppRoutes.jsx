@@ -84,7 +84,9 @@ export default function AppRoutes() {
             <Route path="permissions" element={<PermissionPage />} />
 
             {/* Audit Log */}
-            <Route path="audit-logs" element={<AuditLogPage />} />
+            <Route element={<PermissionRoute permission="AUDIT_VIEW" />}>
+              <Route path="audit-logs" element={<AuditLogPage />} />
+            </Route>            
 
             {/* MODULE 16: TABLE MANAGEMENT */}
             <Route path="tables" element={<TablePage />} />
