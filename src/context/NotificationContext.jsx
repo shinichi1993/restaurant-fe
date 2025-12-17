@@ -96,7 +96,7 @@ export function NotificationProvider({ children }) {
       if (!isPOSPage()) {
         loadUnread();
       }
-    }, 5000);
+    }, 100000);
 
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -62,6 +62,7 @@ export default function AppSidebar() {
     { key: "/permissions", icon: <FileTextOutlined />, label: "Quyền" },
     hasPermission("AUDIT_VIEW") && { key: "/audit-logs", icon: <FileTextOutlined />, label: "Kiểm tra log" },
     hasPermission("SETTING_VIEW") && { key: "/settings", icon: <SlidersOutlined />, label: "Cài đặt" },
+    hasPermission("ADMIN_BACKUP") && { key: "/admin/backup-restore", icon: <SlidersOutlined />, label: "Lưu trữ, phục hồi data" },
   ];
 
   const handleClick = ({ key }) => {

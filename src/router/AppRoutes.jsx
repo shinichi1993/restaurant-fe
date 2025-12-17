@@ -25,6 +25,7 @@ import AdvancedSettingsPage from "../pages/settings/AdvancedSettingsPage";
 import MemberPage from "../pages/member/MemberPage";
 import ForbiddenPage from "../pages/common/ForbiddenPage";
 import PermissionRoute from "../components/common/PermissionRoute";
+import BackupRestorePage from "../pages/admin/BackupRestorePage";
 
 // ⭐ THÊM IMPORT POS ROUTES
 import { renderPosRoutes } from "./PosRoutes";
@@ -96,7 +97,12 @@ export default function AppRoutes() {
 
             <Route path="members" element={<MemberPage />} />
 
-            <Route path="/403" element={<ForbiddenPage />} />
+            <Route path="403" element={<ForbiddenPage />} />
+
+            {/* Audit Log */}
+            <Route element={<PermissionRoute permission="ADMIN_BACKUP" />}>
+              <Route path="admin/backup-restore" element={<BackupRestorePage />} />
+            </Route>  
 
           </Route>
         </Route>
