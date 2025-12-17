@@ -90,15 +90,25 @@ export default function NotificationBell() {
   // ------------------------------------------------------------
   // TÍNH TOÁN LIST HIỂN THỊ
   // ------------------------------------------------------------
+  
+  // ===============================
+  // 1. TOÀN BỘ notification đã sort
+  // ===============================
   const sortedNotifications = [...notifications].sort(
     (a, b) => dayjs(b.createdAt).valueOf() - dayjs(a.createdAt).valueOf()
   );
 
-  const latestNotifications = sortedNotifications.slice(0, 10);
+  // ===============================
+  // 2. UNREAD: lọc từ TOÀN BỘ
+  // ===============================
+  const unreadNotifications = sortedNotifications
+    .filter((n) => n.status === "UNREAD")
+    .slice(0, 10); // chỉ giới hạn hiển thị 10 cái
 
-  const unreadNotifications = latestNotifications.filter(
-    (n) => n.status === "UNREAD"
-  );
+  // ===============================
+  // 3. ALL: lấy 10 cái mới nhất
+  // ===============================
+  const latestNotifications = sortedNotifications.slice(0, 10);
 
   // ------------------------------------------------------------
   // MARK READ 1 CÁI
@@ -206,9 +216,12 @@ export default function NotificationBell() {
           items={[
             {
               key: "unread",
-              label: `Chưa đọc (${unreadNotifications.length})`,
+              label: `Chưa đọc (${unreadNotifications.length}/${
+                unread.length > 10 ? "10+" : unread.length
+              })`,
               children: (
                 <List
+                  style={{ maxHeight: 300, overflowY: "auto" }}
                   dataSource={unreadNotifications}
                   locale={{ emptyText: "Không có thông báo chưa đọc" }}
                   renderItem={renderNotificationItem}
@@ -220,6 +233,7 @@ export default function NotificationBell() {
               label: "Tất cả",
               children: (
                 <List
+                  style={{ maxHeight: 300, overflowY: "auto" }}
                   dataSource={latestNotifications}
                   locale={{ emptyText: "Không có thông báo" }}
                   renderItem={renderNotificationItem}
@@ -243,7 +257,11 @@ export default function NotificationBell() {
       open={open}
       onOpenChange={handleOpenChange}
     >
-      <Badge count={unread.length} size="small" offset={[0, 5]}>
+      <Badge 
+        count={unread.length > 10 ? "10+" : unread.length} 
+        size="small" 
+        offset={[0, 5]}
+        >
         <BellOutlined
           style={{
             fontSize: 20,

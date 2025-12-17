@@ -77,6 +77,15 @@ const TAB_KEYS = {
     "report.pdf_footer",
     "report.pdf_show_logo",
   ],
+  NOTIFICATION: [
+    "notification.enabled",
+    "notification.rule.order_created",
+    "notification.rule.payment_created",
+    "notification.rule.low_stock.enabled",
+    "notification.rule.low_stock.threshold",
+    "notification.rule.revenue_zero.enabled",
+    "notification.rule.revenue_zero.days",
+  ],
 };
 
 // Các lựa chọn định dạng export report
@@ -650,6 +659,78 @@ const AdvancedSettingsPage = () => {
                     </>
                   ),
                 },
+
+                // ======================================================
+                // TAB 6: NOTIFICATION (Phase 4.3)
+                // ======================================================
+                {
+                  key: "NOTIFICATION",
+                  label: "Thông báo (Rule Engine)",
+                  children: (
+                    <>
+                      <Form.Item
+                        label="Bật hệ thống thông báo"
+                        name="notification.enabled"
+                        valuePropName="checked"
+                        tooltip="Nếu tắt: toàn bộ thông báo (chuông, rule engine) sẽ không tạo mới."
+                      >
+                        <Switch />
+                      </Form.Item>
+
+                      <Form.Item
+                        label="Thông báo khi tạo order"
+                        name="notification.rule.order_created"
+                        valuePropName="checked"
+                      >
+                        <Switch />
+                      </Form.Item>
+
+                      <Form.Item
+                        label="Thông báo khi tạo thanh toán"
+                        name="notification.rule.payment_created"
+                        valuePropName="checked"
+                      >
+                        <Switch />
+                      </Form.Item>
+
+                      <Form.Item
+                        label="Cảnh báo tồn kho thấp"
+                        name="notification.rule.low_stock.enabled"
+                        valuePropName="checked"
+                        tooltip="Nếu bật: hệ thống sẽ tạo thông báo tổng hợp khi có nguyên liệu <= ngưỡng."
+                      >
+                        <Switch />
+                      </Form.Item>
+
+                      <Form.Item
+                        label="Ngưỡng tồn kho thấp"
+                        name="notification.rule.low_stock.threshold"
+                        tooltip="Ví dụ: 10. Nếu stockQuantity <= 10 sẽ cảnh báo."
+                      >
+                        <InputNumber min={0} step={1} style={{ width: "100%" }} />
+                      </Form.Item>
+
+                      <Form.Item
+                        label="Cảnh báo không có doanh thu"
+                        name="notification.rule.revenue_zero.enabled"
+                        valuePropName="checked"
+                        tooltip="Nếu bật: mỗi ngày hệ thống kiểm tra X ngày gần nhất không có hóa đơn paid."
+                      >
+                        <Switch />
+                      </Form.Item>
+
+                      <Form.Item
+                        label="Số ngày liên tiếp không có doanh thu để cảnh báo"
+                        name="notification.rule.revenue_zero.days"
+                      >
+                        <InputNumber min={1} step={1} style={{ width: "100%" }} />
+                      </Form.Item>
+
+                      {renderSaveButton("NOTIFICATION")}
+                    </>
+                  ),
+                },
+
               ]}
             />
           </Form>
