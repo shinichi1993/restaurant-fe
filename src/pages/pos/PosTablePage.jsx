@@ -13,7 +13,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Row, Col, Card, Spin, Tag, message, Select, Input, Button, Space } from "antd";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useRef } from "react";
+import { createTableSocket } from "../../utils/tableSocket";
 
 // TODO: Import api lấy danh sách bàn từ module hiện tại
 // Tên hàm dưới đây chỉ là gợi ý, bạn sửa lại theo đúng file api của bạn.
@@ -62,6 +64,15 @@ const getStatusLabel = (status) => {
 const PosTablePage = () => {
   const navigate = useNavigate();
 
+  const location = useLocation();
+
+  /**
+   * Tablet mode:
+   *  - Tất cả route bắt đầu bằng /pos
+   *  - Dùng cho POS Tablet + Simple POS
+   */
+  const isTabletMode = location.pathname.startsWith("/pos");
+
   // Danh sách bàn lấy từ API
   const [tables, setTables] = useState([]);
 
@@ -80,6 +91,8 @@ const PosTablePage = () => {
   //  - 0 hoặc giá trị không hợp lệ → KHÔNG tự động refresh
   // ----------------------------------------------------------
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(0);
+
+  const socketRef = useRef(null);
 
   // ----------------------------------------------------------
   // Hàm gọi API lấy danh sách bàn
@@ -152,7 +165,7 @@ const PosTablePage = () => {
     }
 
     // Đổi sang millisecond
-    const intervalMs = refreshIntervalSec * 1000;
+    const intervalMs = refreshIntervalSec * 1000000000;
 
     const timerId = setInterval(() => {
       loadTables();
@@ -162,6 +175,26 @@ const PosTablePage = () => {
     return () => clearInterval(timerId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshIntervalSec]);
+
+  // =====================================================
+  // PHASE 5.3.5 – REALTIME POS TABLE
+  // =====================================================
+  useEffect(() => {
+    const client = createTableSocket((msg) => {
+      // msg = { tableId, reason }
+      console.log("📡 TABLE REALTIME:", msg);
+
+      // Đơn giản: reload list bàn
+      loadTables();
+    });
+
+    socketRef.current = client;
+    client.activate();
+
+    return () => {
+      client.deactivate();
+    };
+  }, []);
 
   // ----------------------------------------------------------
   // Hàm xử lý khi chọn một bàn
@@ -315,17 +348,18 @@ const PosTablePage = () => {
         {/* ------------------------------------------------------
             Grid hiển thị danh sách bàn
         ------------------------------------------------------ */}
-        <Row gutter={[16, 16]}>
+        <Row gutter={isTabletMode ? [24, 24] : [16, 16]}>
           {filteredTables.map((table) => (
             <Col
               key={table.tableId}
-              xs={12}
-              sm={8}
-              md={6}
-              lg={4}
+              xs={isTabletMode ? 24 : 12}
+              sm={isTabletMode ? 12 : 8}
+              md={isTabletMode ? 8 : 6}
+              lg={isTabletMode ? 6 : 4}
             >
               <TableCard
                 data={table}
+                isTablet={isTabletMode}
                 onClick={() => handleSelectTable(table)}
               />
             </Col>

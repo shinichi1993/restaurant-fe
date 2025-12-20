@@ -102,6 +102,9 @@ export default function CartItem({
               onChange={(value) => {
                 if (isLocked) return; // phòng trường hợp lỡ tay
                 const qty = Number(value || 0);
+                // Không cho giảm về 0 ở đây
+                // Việc xoá dòng chỉ thực hiện qua nút Xóa
+                if (qty <= 0) return;
                 onChangeQuantity(qty);
               }}
             />

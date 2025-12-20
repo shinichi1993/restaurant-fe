@@ -28,6 +28,12 @@ import {
   Space,
   message,
 } from "antd";
+// ------------------------------------------------------------
+// Detect mobile / desktop bằng Ant Design breakpoint
+// ------------------------------------------------------------
+import { Grid } from "antd";
+const { useBreakpoint } = Grid;
+
 import {
   ReloadOutlined,
   ClearOutlined,
@@ -47,6 +53,13 @@ const formatDateTime = (value) => {
 };
 
 export default function PaymentPage() {
+  // ------------------------------------------------------------
+  // Detect mobile
+  // - screens.md = false → mobile
+  // ------------------------------------------------------------
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
+
   // ------------------------------------------------------------------
   // STATE CHÍNH
   // ------------------------------------------------------------------
@@ -200,58 +213,109 @@ export default function PaymentPage() {
   return (
     <Card variant="outlined" style={{ margin: 20 }}>
       {/* Hàng filter trên cùng */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        {/* Bộ lọc ngày – dùng RangePicker cho tiện chọn */}
-        <Col span={10}>
-          <RangePicker
-            style={{ width: "100%" }}
-            value={
-              fromDate && toDate ? [fromDate, toDate] : null
-            }
-            onChange={(dates) => {
-              if (!dates) {
-                setFromDate(null);
-                setToDate(null);
-              } else {
-                setFromDate(dates[0]);
-                setToDate(dates[1]);
-              }
-            }}
-          />
-        </Col>
+      {/* ==========================================================
+          DESKTOP – FILTER (GIỮ NGUYÊN)
+      ========================================================== */}
+      {!isMobile && (
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          {/* Bộ lọc ngày */}
+          <Col span={10}>
+            <RangePicker
+              style={{ width: "100%" }}
+              value={fromDate && toDate ? [fromDate, toDate] : null}
+              onChange={(dates) => {
+                if (!dates) {
+                  setFromDate(null);
+                  setToDate(null);
+                } else {
+                  setFromDate(dates[0]);
+                  setToDate(dates[1]);
+                }
+              }}
+            />
+          </Col>
 
-        {/* Nút Lọc */}
-        <Col span={4}>
-          <Button
-            icon={<ReloadOutlined />}
-            style={{ width: "100%" }}
-            onClick={handleFilter}
-          >
-            Lọc
-          </Button>
-        </Col>
+          {/* Nút Lọc */}
+          <Col span={4}>
+            <Button
+              icon={<ReloadOutlined />}
+              style={{ width: "100%" }}
+              onClick={handleFilter}
+            >
+              Lọc
+            </Button>
+          </Col>
 
-        {/* Nút Xóa lọc – Rule 30, type default, icon ClearOutlined */}
-        <Col span={4}>
-          <Button
-            type="default"
-            icon={<ClearOutlined />}
-            style={{ width: "100%" }}
-            onClick={handleClearFilter}
-          >
-            Xóa lọc
-          </Button>
-        </Col>
-      </Row>
+          {/* Nút Xóa lọc – Rule 30 */}
+          <Col span={4}>
+            <Button
+              type="default"
+              icon={<ClearOutlined />}
+              style={{ width: "100%" }}
+              onClick={handleClearFilter}
+            >
+              Xóa lọc
+            </Button>
+          </Col>
+        </Row>
+      )}
 
       {/* Bảng danh sách payment */}
-      <Table
-        rowKey="id"
-        loading={loading}
-        dataSource={payments}
-        columns={columns}
-        variant="borderless"
-      />
+      {/* ==========================================================
+          DESKTOP – TABLE
+      ========================================================== */}
+      {!isMobile && (
+        <Table
+          rowKey="id"
+          loading={loading}
+          dataSource={payments}
+          columns={columns}
+          variant="borderless"
+        />
+      )}
+
+      {/* ==========================================================
+          MOBILE – CARD VIEW (VIEW ONLY)
+      ========================================================== */}
+      {isMobile && (
+        <Space direction="vertical" style={{ width: "100%" }}>
+          {payments.map((p) => (
+            <Card
+              key={p.id}
+              variant="outlined"
+              style={{ borderRadius: 10 }}
+              onClick={() => openDetail(p)}
+            >
+              {/* Mã order */}
+              <div style={{ fontWeight: 600, fontSize: 16 }}>
+                Order #{p.orderId}
+              </div>
+
+              {/* Số tiền */}
+              <div style={{ marginTop: 6 }}>
+                <b>{p.amount?.toLocaleString("vi-VN")} đ</b>
+              </div>
+
+              {/* Phương thức */}
+              <div style={{ marginTop: 6 }}>
+                {p.method === "CASH" && <Tag color="green">Tiền mặt</Tag>}
+                {p.method === "MOMO" && <Tag color="purple">Momo</Tag>}
+                {p.method === "BANKING" && <Tag color="blue">Chuyển khoản</Tag>}
+              </div>
+
+              {/* Thời gian */}
+              <div style={{ marginTop: 6, fontSize: 13, color: "#666" }}>
+                {formatDateTime(p.paidAt)}
+              </div>
+
+              {/* Hint */}
+              <div style={{ marginTop: 8, fontSize: 12, color: "#999" }}>
+                Chạm để xem chi tiết
+              </div>
+            </Card>
+          ))}
+        </Space>
+      )}
 
       {/* Modal chi tiết payment */}
       <PaymentDetailModal

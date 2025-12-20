@@ -74,10 +74,18 @@ const createLineId = (prefix = "line") =>
   `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 export default function PosOrderPage() {
+
   // Lấy tableId từ URL: /pos/table/:tableId/order
   const { tableId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // ------------------------------------------------------------
+  // Kiểm tra có quay lại từ màn hình Summary hay không
+  // - Nếu fromSummary = true → KHÔNG load lại order từ BE
+  // - Mục đích: giữ nguyên cart local để chỉnh sửa tiếp
+  // ------------------------------------------------------------
+  const fromSummary = location.state?.fromSummary === true;
 
   // Nếu từ PosTablePage truyền state { tableName } thì dùng, không thì fallback
   const tableName = location.state?.tableName || `Bàn ${tableId}`;
@@ -174,10 +182,14 @@ export default function PosOrderPage() {
   // ------------------------------------------------------------
   useEffect(() => {
     loadDishes();
-    if (tableId) {
+    // Chỉ load order từ BE khi:
+    //  - Có tableId
+    //  - KHÔNG phải quay lại từ Summary
+    // Nếu quay lại từ Summary → giữ cart local
+    if (tableId && !fromSummary) {
       loadOrderOfTable();
     }
-  }, [loadDishes, loadOrderOfTable, tableId]);
+  }, [loadDishes, loadOrderOfTable, tableId, fromSummary]);
 
   // ------------------------------------------------------------
   // 3. TÍNH TOÁN NHÓM (CATEGORY) TỪ DANH SÁCH MÓN
@@ -373,7 +385,7 @@ export default function PosOrderPage() {
         {/* =====================================================================
             CỘT TRÁI – DANH SÁCH MÓN
         ===================================================================== */}
-        <Col xs={24} md={14} lg={16}>
+        <Col xs={24} md={15} lg={16}>
           {/* Header + filter */}
           <Space
             direction="vertical"
@@ -385,7 +397,7 @@ export default function PosOrderPage() {
               style={{ marginBottom: 16 }}
             >
               <Col>
-                <h2>Gọi món – {tableName}</h2>
+                <h2>POS – Gọi món tại bàn: {tableName}</h2>
                 <Text type="secondary">
                   Chọn món ở bên trái, giỏ hàng sẽ hiển thị ở bên phải (lưu tạm
                   trên màn hình cho đến khi bạn gửi Order).
@@ -490,65 +502,73 @@ export default function PosOrderPage() {
         {/* =====================================================================
             CỘT PHẢI – GIỎ HÀNG (CART)
         ===================================================================== */}
-        <Col xs={24} md={10} lg={8}>
-          <Card
-            title={`Giỏ hàng – ${tableName}`}
-            variant="outlined"
-            extra={<Text strong>Tổng: {totalAmount.toLocaleString()} đ</Text>}
-          >
-            {/* Nếu giỏ hàng trống */}
-            {!cartItems.length && (
-              <Empty
-                description="Chưa có món nào trong giỏ"
-                style={{ margin: "16px 0" }}
-              />
-            )}
-
-            {/* Danh sách CartItem */}
-            <Space direction="vertical" style={{ width: "100%" }} size={8}>
-              {cartItems.map((item) => {
-                // ----------------------------------------------------------
-                // Case A: Nếu món này có bất kỳ dòng locked
-                //  (SENT_TO_KITCHEN / COOKING / DONE)
-                //  → khóa luôn tất cả dòng của dishId đó
-                // ----------------------------------------------------------
-                const hasLockedSameDish = cartItems.some(
-                  (other) =>
-                    other.dishId === item.dishId &&
-                    (other.status === "SENT_TO_KITCHEN" ||
-                      other.status === "COOKING" ||
-                      other.status === "DONE")
-                );
-
-                return (
-                  <CartItem
-                    key={item.lineId}
-                    item={item}
-                    forceLocked={hasLockedSameDish}
-                    onChangeQuantity={(qty) =>
-                      handleChangeCartQuantity(item.lineId, qty)
-                    }
-                    onChangeNote={(note) =>
-                      handleChangeCartNote(item.lineId, note)
-                    }
-                    onRemove={() => handleRemoveCartItem(item.lineId)}
-                  />
-                );
-              })}
-            </Space>
-
-            {/* Nút điều hướng sang Summary */}
-            <Button
-              type="primary"
-              block
-              style={{ marginTop: 16 }}
-              variant="solid"
-              onClick={handleGoToSummary}
-              disabled={!cartItems.length}
+        <Col xs={24} md={9} lg={8}>
+          {/* 
+            Giỏ hàng được bọc sticky để:
+            - Tablet scroll món bên trái
+            - Giỏ hàng luôn hiển thị bên phải
+          */}
+          <div style={{ position: "sticky", top: 16 }}>
+            <Card
+              title={`Giỏ hàng – ${tableName}`}
+              variant="outlined"
+              extra={<Text strong>Tổng: {totalAmount.toLocaleString()} đ</Text>}
             >
-              Tiếp tục (Xác nhận order)
-            </Button>
-          </Card>
+              {/* Nếu giỏ hàng trống */}
+              {!cartItems.length && (
+                <Empty
+                  description="Chưa có món nào trong giỏ"
+                  style={{ margin: "16px 0" }}
+                />
+              )}
+
+              {/* Danh sách CartItem */}
+              <Space direction="vertical" style={{ width: "100%" }} size={8}>
+                {cartItems.map((item) => {
+                  // ----------------------------------------------------------
+                  // Case A: Nếu món này có bất kỳ dòng locked
+                  //  (SENT_TO_KITCHEN / COOKING / DONE)
+                  //  → khóa luôn tất cả dòng của dishId đó
+                  // ----------------------------------------------------------
+                  const hasLockedSameDish = cartItems.some(
+                    (other) =>
+                      other.dishId === item.dishId &&
+                      (other.status === "SENT_TO_KITCHEN" ||
+                        other.status === "COOKING" ||
+                        other.status === "DONE")
+                  );
+
+                  return (
+                    <CartItem
+                      key={item.lineId}
+                      item={item}
+                      forceLocked={hasLockedSameDish}
+                      onChangeQuantity={(qty) =>
+                        handleChangeCartQuantity(item.lineId, qty)
+                      }
+                      onChangeNote={(note) =>
+                        handleChangeCartNote(item.lineId, note)
+                      }
+                      onRemove={() => handleRemoveCartItem(item.lineId)}
+                    />
+                  );
+                })}
+              </Space>
+
+              {/* Nút điều hướng sang Summary */}
+              <Button
+                type="primary"
+                block
+                style={{ marginTop: 16 }}
+                variant="solid"
+                size="large"
+                onClick={handleGoToSummary}
+                disabled={!cartItems.length}
+              >
+                Tiếp tục (Xác nhận order)
+              </Button>
+            </Card>
+          </div>
         </Col>
       </Row>
     </MotionWrapper>

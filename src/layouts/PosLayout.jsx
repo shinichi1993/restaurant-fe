@@ -12,6 +12,8 @@ const PosLayout = () => {
 
   const handleGoToAdmin = () => navigate("/admin/dashboard");
 
+  const isTabletMode = sessionStorage.getItem("POS_UI_MODE") === "TABLET";
+
   const handleLogout = () => {
     // TODO: Xoá token + chuyển về login sau này
   };
@@ -21,7 +23,11 @@ const PosLayout = () => {
       {/* Header POS */}
       <PosHeader />
 
-      <Content style={{ padding: 16, maxWidth: 1200, margin: "0 auto" }}>
+      <Content style={{ 
+        padding: isTabletMode ? 8 : 16,
+        maxWidth: isTabletMode ? "100%" : 1200,
+        margin: "0 auto",
+        }}>
         <Outlet />
       </Content>
     </Layout>

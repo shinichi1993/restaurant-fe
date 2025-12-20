@@ -35,6 +35,9 @@ import { getKitchenOrders, updateKitchenItemStatus } from "../../api/kitchenApi"
 import KitchenOrderCard from "./KitchenOrderCard";
 import "./kitchen.css";
 
+import { createKitchenSocket } from "../../utils/kitchenSocket";
+
+
 const { Title, Text } = Typography;
 
 // Các option trạng thái cho filter
@@ -51,7 +54,7 @@ const STATUS_OPTIONS = [
 // 🔁 Thời gian auto refresh (ms)
 //  - 5000ms = 5 giây
 //  - Sau này nếu muốn mềm dẻo hơn có thể đọc từ SystemSetting (BE) rồi truyền xuống FE
-const AUTO_REFRESH_INTERVAL_MS = 5000;
+//const AUTO_REFRESH_INTERVAL_MS = 5000000000;
 
 export default function KitchenPage() {
   // ------------------------------------------------------------
@@ -77,6 +80,9 @@ export default function KitchenPage() {
 
   // Đánh dấu lần load đầu tiên (để không phát tiếng)
   const isFirstLoadRef = useRef(true);
+
+  // Ref giữ STOMP client (để disconnect khi unmount)
+const socketClientRef = useRef(null);
 
   // ------------------------------------------------------------
   // HÀM LOAD DỮ LIỆU TỪ BE
@@ -138,6 +144,7 @@ export default function KitchenPage() {
   // ------------------------------------------------------------
   // 6.2 – AUTO REFRESH MỖI X GIÂY
   // ------------------------------------------------------------
+  /* Bỏ pooling vì đã dùng socket
   useEffect(() => {
     // Dùng setInterval gọi lại loadData mỗi X giây.
     // Lưu ý: phải clearInterval khi component unmount để tránh memory leak.
@@ -147,6 +154,46 @@ export default function KitchenPage() {
 
     return () => {
       clearInterval(intervalId);
+    };
+  }, [loadData]);
+  */
+
+  // ------------------------------------------------------------
+  // 6.3 – KẾT NỐI REALTIME WEBSOCKET (Phase 5.2 FE)
+  // ------------------------------------------------------------
+  useEffect(() => {
+    // Callback khi BE bắn realtime xuống topic /topic/kitchen
+    const handleRealtimeMessage = (payload) => {
+      /**
+       * payload có thể là:
+       *  - KitchenItemResponse (update status món)
+       *  - KitchenItemRealtimeDto (món mới auto_send_kitchen)
+       *
+       * Chiến lược an toàn:
+       *  - Khi có realtime event → reload lại data từ BE
+       *  - Không merge state thủ công để tránh bug phức tạp
+       */
+      console.log("[KITCHEN REALTIME]", payload);
+
+      // Reload lại danh sách order cho bếp
+      loadData();
+    };
+
+    // Tạo socket client
+    const client = createKitchenSocket(handleRealtimeMessage);
+
+    // Lưu ref để cleanup
+    socketClientRef.current = client;
+
+    // Kết nối WebSocket
+    client.activate();
+
+    return () => {
+      // Cleanup khi unmount component
+      if (socketClientRef.current) {
+        socketClientRef.current.deactivate();
+        socketClientRef.current = null;
+      }
     };
   }, [loadData]);
 

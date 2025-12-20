@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import LoginPage from "../pages/auth/LoginPage";
-import AdminLayout from "../layouts/AdminLayout";
+import AdminLayoutWrapper from "../layouts/AdminLayoutWrapper";
 import PrivateRoute from "../components/common/PrivateRoute";
 import DashboardPage from "../pages/dashboard/DashboardPage";
 import UserPage from "../pages/user/UserPage";
@@ -44,7 +44,7 @@ export default function AppRoutes() {
           {renderPosRoutes()}
 
           {/* ⭐ Admin Routes – bọc trong AdminLayout */}
-          <Route path="/" element={<AdminLayout />}>
+          <Route path="/" element={<AdminLayoutWrapper />}>
             {/* Dashboard */}
             <Route path="/dashboard" element={<DashboardPage />} />
 

@@ -28,6 +28,12 @@ import {
   Card,
 } from "antd";
 
+// ------------------------------------------------------------
+// Detect mobile / desktop (Ant Design breakpoint)
+// ------------------------------------------------------------
+import { Grid } from "antd";
+const { useBreakpoint } = Grid;
+
 import {
   SearchOutlined,
   ReloadOutlined,
@@ -48,6 +54,13 @@ import PaymentModal from "../../components/payment/PaymentModal";
 import { fetchAllSettings } from "../../api/settingApi"; // ✅ Thêm dòng này
 
 export default function OrderPage() {
+    // ------------------------------------------------------------
+  // Detect mobile
+  // - screens.md = false → mobile
+  // ------------------------------------------------------------
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
+
   const navigate = useNavigate();
 
   // --------------------------------------------------------------
@@ -311,27 +324,69 @@ export default function OrderPage() {
           </Button>
         </Col>
 
-        {/* Tạo order mới */}
-        <Col span={6}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            style={{ width: "100%" }}
-            onClick={() => navigate("/orders/create")}
-          >
-            Tạo order mới
-          </Button>
-        </Col>
+        {/* Tạo order mới - Nếu mobile sẽ k hiện */}
+        {!isMobile && (
+          <Col span={6}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              style={{ width: "100%" }}
+              onClick={() => navigate("/orders/create")}
+            >
+              Tạo order mới
+            </Button>
+          </Col>
+        )}
       </Row>
 
-      {/* TABLE */}
-      <Table
-        rowKey="id"
-        loading={loading}
-        dataSource={filteredOrders}
-        columns={columns}
-        variant="borderless"
-      />
+      {/* ==========================================================
+          DESKTOP – TABLE (GIỮ NGUYÊN HÀNH VI CŨ)
+      ========================================================== */}
+      {!isMobile && (
+        <Table
+          rowKey="id"
+          loading={loading}
+          dataSource={filteredOrders}
+          columns={columns}
+          variant="borderless"
+        />
+      )}
+
+      {/* ==========================================================
+          MOBILE – CARD VIEW (VIEW ONLY)
+      ========================================================== */}
+      {isMobile && (
+        <Space direction="vertical" style={{ width: "100%" }}>
+          {filteredOrders.map((order) => (
+            <Card
+              key={order.id}
+              variant="outlined"
+              style={{ borderRadius: 10 }}
+              onClick={() => {
+                setSelectedOrder(order);
+                setOpenDetail(true);
+              }}
+            >
+              {/* Mã order */}
+              <div style={{ fontWeight: 600, fontSize: 16 }}>
+                {order.orderCode}
+              </div>
+
+              {/* Trạng thái */}
+              <div style={{ marginTop: 6 }}>
+                {order.status === "NEW" && <Tag color="blue">Mới</Tag>}
+                {order.status === "SERVING" && <Tag color="orange">Đang phục vụ</Tag>}
+                {order.status === "PAID" && <Tag color="green">Đã thanh toán</Tag>}
+              </div>
+
+              {/* Ghi chú */}
+              <div style={{ marginTop: 8, fontSize: 13, color: "#666" }}>
+                Chạm để xem chi tiết
+              </div>
+            </Card>
+          ))}
+        </Space>
+      )}
 
       {/* MODAL CHI TIẾT ORDER */}
       <OrderDetailModal

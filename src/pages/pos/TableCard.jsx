@@ -39,7 +39,7 @@ const getTimeColor = (minutes) => {
   return "#C00000";                  // đỏ
 };
 
-export default function TableCard({ data, onClick }) {
+export default function TableCard({ data, onClick, isTablet = false }) {
   const {
     tableName,
     status,
@@ -73,8 +73,8 @@ export default function TableCard({ data, onClick }) {
     <Card
       onClick={onClick}
       style={{
-        borderRadius: 14,
-        padding: 12,
+        borderRadius: isTablet ? 18 : 14,
+        padding: isTablet ? 20 : 12,
         cursor: status === "DISABLED" ? "not-allowed" : "pointer",
         opacity: status === "DISABLED" ? 0.55 : 1,
         boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
@@ -95,9 +95,9 @@ export default function TableCard({ data, onClick }) {
       {/* -------------------------------------- */}
       <div
         style={{
-          fontSize: 20,
+          fontSize: isTablet ? 24 : 20,
           fontWeight: 700,
-          marginBottom: 6,
+          marginBottom: isTablet ? 10 : 6,
           display: "flex",
           justifyContent: "space-between",
         }}
@@ -128,7 +128,7 @@ export default function TableCard({ data, onClick }) {
           borderRadius: 6,
           display: "inline-block",
           marginBottom: 6,
-          fontSize: 13,
+          fontSize: isTablet ? 15 : 13,
         }}
       >
         {statusInfo.label}
@@ -156,7 +156,13 @@ export default function TableCard({ data, onClick }) {
       {/* 3) Order code */}
       {/* -------------------------------------- */}
       {orderCode && (
-        <div style={{ marginTop: 8, fontSize: 14, fontWeight: 600 }}>
+        <div
+          style={{
+            marginTop: isTablet ? 12 : 8,
+            fontSize: isTablet ? 16 : 14,
+            fontWeight: 600,
+          }}
+        >
           Order:{" "}
           <span style={{ fontWeight: 500, opacity: 0.85 }}>{orderCode}</span>
         </div>
@@ -166,7 +172,12 @@ export default function TableCard({ data, onClick }) {
       {/* 4) Thống kê món (mới / nấu / xong) */}
       {/* -------------------------------------- */}
       {totalItems > 0 && (
-        <div style={{ marginTop: 6, fontSize: 13 }}>
+        <div
+          style={{
+            marginTop: isTablet ? 10 : 6,
+            fontSize: isTablet ? 15 : 13,
+          }}
+        >
           <span style={{ color: "#1A8F3A" }}>
             Mới: <b>{newItems}</b>
           </span>
@@ -192,7 +203,7 @@ export default function TableCard({ data, onClick }) {
         <div
           style={{
             marginTop: 10,
-            fontSize: 13,
+            fontSize: isTablet ? 15 : 13,
             fontWeight: 600,
             color: getTimeColor(minutes),
             display: "flex",

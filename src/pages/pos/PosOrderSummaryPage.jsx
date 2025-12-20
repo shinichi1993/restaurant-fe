@@ -1,207 +1,187 @@
 // src/pages/pos/PosOrderSummaryPage.jsx
-// ---------------------------------------------------------------------
-// PosOrderSummaryPage – Trang xác nhận order cuối cùng
-//
+// ============================================================================
+// PosOrderSummaryPage – XÁC NHẬN ORDER (POS CHUẨN – TABLET UI)
+// ----------------------------------------------------------------------------
 // Chức năng:
-//  - Hiển thị danh sách món đã chọn (cartItems) sau khi GỘP theo dishId
-//  - Tính tổng tiền
-//  - Nếu orderId != null → cập nhật order đang mở (PUT /api/orders/{id})
-//  - Nếu orderId == null → tạo order mới (POST /api/orders)
-//  - Sau khi gửi thành công → quay về danh sách bàn (/pos/table)
-//
-// Lưu ý Option 1 + Case A:
-//  - Ở PosOrderPage, FE đã:
-//      + Khóa không cho giảm quantity món có item locked
-//      + Chỉ cho gọi thêm món (tăng quantity tổng)
-//  - Vì vậy ở đây chỉ cần:
-//      + Gộp quantity theo dishId
-//      + Không cần tách lockedQty / editableQty nữa
-//  - FE gửi payload items đã GỘP theo dishId:
-//        [{ dishId, quantity, note }]
-//    → BE dùng tổng quantity để tính phần chênh lệch (create thêm NEW item)
-// ---------------------------------------------------------------------
+//  - Hiển thị danh sách món đã chọn (gộp theo dishId)
+//  - Hiển thị tổng tiền lớn, rõ ràng cho nhân viên xác nhận
+//  - Cho phép:
+//      + Quay lại chỉnh sửa order
+//      + Gửi order (POST / PUT)
+//  - KHÔNG thanh toán tại đây (POS chuẩn)
+// ----------------------------------------------------------------------------
+// Điều hướng:
+//  - Thành công → /pos/table
+// ============================================================================
 
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Card, List, Button, message, Empty } from "antd";
-
+import { Row, Col, Card, Button, List, Typography, Divider, Empty, message } from "antd";
+import MotionWrapper from "../../components/common/MotionWrapper";
 import { createOrder, updateOrderItems } from "../../api/orderApi";
 
-import MotionWrapper from "../../components/common/MotionWrapper";
+const { Title, Text } = Typography;
 
 // ------------------------------------------------------------
-// Hàm gộp cart theo dishId
-//  - Nếu có nhiều dòng cùng dishId → cộng dồn quantity
-//  - note: lấy ghi chú cuối cùng không rỗng (nếu có)
-//  - Không quan tâm status tại đây vì Case A đã được xử lý ở màn trước
+// Gộp cartItems theo dishId
 // ------------------------------------------------------------
-function aggregateCartItems(cartItems = []) {
+const aggregateCartItems = (cartItems = []) => {
   const map = {};
 
   cartItems.forEach((item) => {
-    const key = item.dishId;
-    const price = Number(item.price || 0);
-    const quantity = Number(item.quantity || 0);
-
-    if (!map[key]) {
-      map[key] = {
+    if (!map[item.dishId]) {
+      map[item.dishId] = {
         dishId: item.dishId,
         name: item.name,
-        price,
+        price: Number(item.price || 0),
         quantity: 0,
-        note: null,
       };
     }
-
-    map[key].quantity += quantity;
-
-    if (item.note && item.note.trim()) {
-      map[key].note = item.note.trim();
-    }
+    map[item.dishId].quantity += Number(item.quantity || 0);
   });
 
   return Object.values(map);
-}
+};
 
-const PosOrderSummaryPage = () => {
-  const { tableId } = useParams(); // lấy id bàn từ URL
-
+export default function PosOrderSummaryPage() {
+  const { tableId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Lấy dữ liệu được truyền từ PosOrderPage
   const { cartItems = [], orderId = null, tableName } = location.state || {};
 
-  // Gộp món theo dishId (theo rule ở trên)
-  const aggregatedItems = aggregateCartItems(cartItems);
+  const items = aggregateCartItems(cartItems);
 
-  // Tính tổng tiền
-  const totalAmount = aggregatedItems.reduce(
-    (sum, item) => sum + Number(item.price) * item.quantity,
+  const totalAmount = items.reduce(
+    (sum, i) => sum + i.price * i.quantity,
     0
   );
 
-  // ---------------------------------------------------------------------
-  // Hàm gửi order lên backend
-  // ---------------------------------------------------------------------
+  // ------------------------------------------------------------
+  // Gửi order lên BE
+  // ------------------------------------------------------------
   const handleSubmitOrder = async () => {
-    if (!aggregatedItems.length) {
+    if (!items.length) {
       message.warning("Không có món nào để gửi order");
       return;
     }
 
     try {
-      // Chuẩn bị payload chuẩn theo DTO backend (OrderItemRequest có cả note)
       const payload = {
         tableId: Number(tableId),
-        items: aggregatedItems.map((item) => ({
-          dishId: item.dishId,
-          quantity: item.quantity,
-          note: item.note || null,
+        items: items.map((i) => ({
+          dishId: i.dishId,
+          quantity: i.quantity,
         })),
       };
 
       if (!orderId) {
-        // -----------------------------------------------------------
-        // 1️⃣ Trường hợp bàn chưa có order → Tạo order mới
-        // -----------------------------------------------------------
         await createOrder(payload);
-        message.success("Tạo order mới thành công");
+        message.success("Tạo order thành công");
       } else {
-        // -----------------------------------------------------------
-        // 2️⃣ Trường hợp bàn đã có order đang phục vụ → Update order
-        // -----------------------------------------------------------
-        await updateOrderItems(orderId, {
-          items: payload.items, // update không cần tableId
-        });
+        await updateOrderItems(orderId, { items: payload.items });
         message.success("Cập nhật order thành công");
       }
 
-      // -----------------------------------------------------------
-      // 3️⃣ Điều hướng về trang danh sách bàn POS
-      // -----------------------------------------------------------
       navigate("/pos/table");
-    } catch (error) {
-      console.error("Lỗi gửi order:", error);
-      //message.error("Gửi order thất bại, vui lòng kiểm tra lại");
+    } catch (err) {
+      console.error(err);
+      message.error("Gửi order thất bại");
     }
   };
 
-  const displayTableName = tableName || `Bàn ${tableId}`;
-
-  // ---------------------------------------------------------------------
-  // Render UI
-  // ---------------------------------------------------------------------
   return (
     <MotionWrapper>
-      <Card
-        variant="outlined"
-        title={`Xác nhận Order – ${displayTableName}`}
-        extra={
-          <div style={{ fontSize: 18, fontWeight: 600 }}>
-            Tổng: {totalAmount.toLocaleString()} đ
-          </div>
-        }
-      >
-        {/* Danh sách món đã chọn */}
-        {aggregatedItems.length === 0 ? (
-          <Empty description="Không có món nào trong order" />
-        ) : (
-          <List
-            dataSource={aggregatedItems}
-            renderItem={(item) => (
-              <List.Item>
-                {/* Tên món */}
-                <div style={{ flex: 1, fontWeight: 500 }}>{item.name}</div>
-
-                {/* Số lượng */}
-                <div style={{ width: 60, textAlign: "right" }}>
-                  x {item.quantity}
-                </div>
-
-                {/* Thành tiền */}
-                <div
-                  style={{
-                    width: 120,
-                    textAlign: "right",
-                    fontWeight: 600,
-                  }}
-                >
-                  {(item.price * item.quantity).toLocaleString()} đ
-                </div>
-              </List.Item>
-            )}
-          />
-        )}
-
-        {/* Nhóm nút cuối trang */}
-        <div style={{ marginTop: 24, display: "flex", gap: 12 }}>
-          {/* Nút quay lại trang Order */}
-          <Button
-            block
+      <Row gutter={24}>
+        {/* =====================================================
+            CỘT TRÁI – DANH SÁCH MÓN
+        ===================================================== */}
+        <Col xs={24} lg={16}>
+          <Card
+            title={<Title level={4}>Xác nhận Order – {tableName}</Title>}
             variant="outlined"
-            onClick={() =>
-              navigate(`/pos/table/${tableId}/order`, {
-                state: { fromSummary: true, tableName: displayTableName },
-              })
-            }
           >
-            Quay lại chỉnh sửa
-          </Button>
+            {items.length === 0 ? (
+              <Empty description="Không có món nào trong order" />
+            ) : (
+              <List
+                dataSource={items}
+                renderItem={(item) => (
+                  <List.Item>
+                    <div style={{ flex: 1, fontWeight: 500 }}>
+                      {item.name}
+                    </div>
+                    <div style={{ width: 80, textAlign: "center" }}>
+                      x {item.quantity}
+                    </div>
+                    <div style={{ width: 120, textAlign: "right", fontWeight: 600 }}>
+                      {(item.price * item.quantity).toLocaleString()} đ
+                    </div>
+                  </List.Item>
+                )}
+              />
+            )}
+          </Card>
+        </Col>
 
-          {/* Nút gửi order */}
-          <Button
-            type="primary"
-            block
-            variant="solid"
-            onClick={handleSubmitOrder}
-            disabled={!aggregatedItems.length}
+        {/* =====================================================
+            CỘT PHẢI – TỔNG KẾT + CTA
+        ===================================================== */}
+        <Col xs={24} lg={8}>
+          <Card
+            variant="outlined"
+            style={{
+              position: "sticky",
+              top: 16,
+            }}
           >
-            Gửi Order
-          </Button>
-        </div>
-      </Card>
+            <Title level={3} style={{ marginBottom: 0 }}>
+              Tổng cộng
+            </Title>
+
+            <Text type="secondary">
+              {items.length} món
+            </Text>
+
+            <Divider />
+
+            <div
+              style={{
+                fontSize: 28,
+                fontWeight: 700,
+                color: "#d4380d",
+                textAlign: "center",
+              }}
+            >
+              {totalAmount.toLocaleString()} đ
+            </div>
+
+            <Divider />
+
+            <Button
+              block
+              variant="outlined"
+              style={{ marginBottom: 12 }}
+              onClick={() =>
+                navigate(`/pos/table/${tableId}/order`, {
+                  state: { tableName },
+                })
+              }
+            >
+              ← Quay lại chỉnh sửa
+            </Button>
+
+            <Button
+              block
+              type="primary"
+              size="large"
+              variant="solid"
+              onClick={handleSubmitOrder}
+            >
+              Gửi Order
+            </Button>
+          </Card>
+        </Col>
+      </Row>
     </MotionWrapper>
   );
-};
-
-export default PosOrderSummaryPage;
+}

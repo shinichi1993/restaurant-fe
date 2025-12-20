@@ -16,6 +16,12 @@
 //  - Toàn bộ comment dùng tiếng Việt (Rule 13)
 // ====================================================================
 
+// ------------------------------------------------------------
+// Detect responsive breakpoint của Ant Design
+// ------------------------------------------------------------
+import { Grid } from "antd";
+const { useBreakpoint } = Grid;
+
 import { useEffect, useState } from "react";
 import {
   Row,
@@ -55,6 +61,14 @@ export default function DashboardPage() {
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [loadingChart, setLoadingChart] = useState(false);
   const [loadingTopDishes, setLoadingTopDishes] = useState(false);
+
+  // ------------------------------------------------------------
+  // Detect thiết bị mobile
+  // - screens.md = true  → desktop / tablet
+  // - screens.md = false → mobile
+  // ------------------------------------------------------------
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   // ====================================================================
   // HÀM LOAD DỮ LIỆU DASHBOARD TỪ BE
