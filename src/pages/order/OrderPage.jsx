@@ -26,6 +26,7 @@ import {
   Tag,
   message,
   Card,
+  Tabs,
 } from "antd";
 
 // ------------------------------------------------------------
@@ -52,6 +53,7 @@ import {
 import OrderDetailModal from "../../components/order/OrderDetailModal";
 import PaymentModal from "../../components/payment/PaymentModal";
 import { fetchAllSettings } from "../../api/settingApi"; // ✅ Thêm dòng này
+import { APP_MODE } from "../../constants/appMode";
 
 export default function OrderPage() {
     // ------------------------------------------------------------
@@ -71,6 +73,12 @@ export default function OrderPage() {
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  // =======================================================
+  // EPIC 3 – Tab trạng thái thanh toán (Admin)
+  // UNPAID: Chưa thanh toán (NEW, SERVING)
+  // PAID  : Đã thanh toán (PAID)
+  // =======================================================
+  const [activeTab, setActiveTab] = useState("UNPAID");
 
   const [openDetail, setOpenDetail] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -94,11 +102,28 @@ export default function OrderPage() {
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const res = await getOrders();
+
+      // ==========================================================
+      // EPIC 3 – Luôn lấy theo paid tab để ưu tiên order chưa thanh toán
+      // ----------------------------------------------------------
+      // UNPAID → paid=false (NEW, SERVING)
+      // PAID   → paid=true  (PAID)
+      // ==========================================================
+      const params = {
+        paid: activeTab === "PAID",
+      };
+
+      // Nếu user vẫn chọn status (UNPAID: NEW/SERVING) thì truyền lên BE
+      // (PAID tab thường không cần status vì BE đã auto PAID theo paid=true)
+      if (status) {
+        params.status = status;
+      }
+
+      const res = await getOrders(params);
       setOrders(res);
     } catch (err) {
       console.error(err);
-      //message.error("Không thể tải danh sách Order");
+      // message.error("Không thể tải danh sách Order");
     } finally {
       setLoading(false);
     }
@@ -146,14 +171,18 @@ export default function OrderPage() {
     loadOrders();
     // Load cấu hình POS (cho phép xóa / sửa...)
     loadPosSettings();
-  }, []);
+  }, [activeTab, status]);
 
   // --------------------------------------------------------------
   // HÀM XÓA LỌC (Rule 30)
+  //  - Reset search
+  //  - Reset status
+  //  - Quay về tab mặc định UNPAID (ưu tiên order chưa thanh toán)
   // --------------------------------------------------------------
   const clearFilter = () => {
     setSearch("");
     setStatus("");
+    setActiveTab("UNPAID");
   };
 
   // --------------------------------------------------------------
@@ -286,6 +315,21 @@ export default function OrderPage() {
   // --------------------------------------------------------------
   return (
     <Card variant="outlined" style={{ margin: 20 }}>
+      <Tabs
+          activeKey={activeTab}
+          onChange={(key) => {
+            // ======================================================
+            // EPIC 3 – Đổi tab thì reset filter status + search
+            // ======================================================
+            setActiveTab(key);
+            setSearch("");
+            setStatus("");
+          }}
+          items={[
+            { key: "UNPAID", label: "Chưa thanh toán" },
+            { key: "PAID", label: "Đã thanh toán" },
+          ]}
+      />
       <Row gutter={16} style={{ marginBottom: 16 }}>
         {/* Tìm kiếm mã order */}
         <Col span={6}>
@@ -305,11 +349,16 @@ export default function OrderPage() {
             style={{ width: "100%" }}
             value={status}
             onChange={(v) => setStatus(v)}
-            options={[
-              { value: "NEW", label: "Mới" },
-              { value: "SERVING", label: "Đang phục vụ" },
-              { value: "PAID", label: "Đã thanh toán" },
-            ]}
+            options={
+              activeTab === "UNPAID"
+                ? [
+                    { value: "NEW", label: "Mới" },
+                    { value: "SERVING", label: "Đang phục vụ" },
+                  ]
+                : [
+                    { value: "PAID", label: "Đã thanh toán" },
+                  ]
+            }
           />
         </Col>
 
@@ -401,6 +450,8 @@ export default function OrderPage() {
         onClose={() => setOpenPay(false)}
         order={payOrder}
         reloadOrders={loadOrders}
+        // ✅ EPIC 2: Admin dùng PaymentModal theo ngữ cảnh ADMIN
+        contextMode={APP_MODE.ADMIN}
       />
     </Card>
   );

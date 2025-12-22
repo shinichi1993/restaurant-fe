@@ -1,5 +1,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+import WorkingModePage from "../pages/mode/WorkingModePage";
+import ModeRoute from "../components/common/ModeRoute";
+import { APP_MODE } from "../constants/appMode";
+
 import LoginPage from "../pages/auth/LoginPage";
 import AdminLayoutWrapper from "../layouts/AdminLayoutWrapper";
 import PrivateRoute from "../components/common/PrivateRoute";
@@ -40,70 +44,74 @@ export default function AppRoutes() {
         {/* Các route yêu cầu đăng nhập */}
         <Route element={<PrivateRoute />}>
 
+          {/* Working Mode – sau login bắt buộc chọn chế độ */}
+          <Route path="/mode" element={<WorkingModePage />} />
+
           {/* ⭐ POS Routes – nằm ngoài AdminLayout */}
           {renderPosRoutes()}
 
           {/* ⭐ Admin Routes – bọc trong AdminLayout */}
-          <Route path="/" element={<AdminLayoutWrapper />}>
-            {/* Dashboard */}
-            <Route path="/dashboard" element={<DashboardPage />} />
+          <Route element={<ModeRoute allowModes={[APP_MODE.ADMIN]} />}>
+            <Route path="/" element={<AdminLayoutWrapper />}>
+              {/* Dashboard */}
+              <Route path="/dashboard" element={<DashboardPage />} />
 
-            {/* Users */}
-            <Route path="users" element={<UserPage />} />
+              {/* Users */}
+              <Route path="users" element={<UserPage />} />
 
-            {/* Ingredient */}
-            <Route path="ingredients" element={<IngredientPage />} />
+              {/* Ingredient */}
+              <Route path="ingredients" element={<IngredientPage />} />
 
-            {/* Stock Entry */}
-            <Route path="stock-entries" element={<StockEntryPage />} />
+              {/* Stock Entry */}
+              <Route path="stock-entries" element={<StockEntryPage />} />
 
-            {/* Category & Dish */}
-            <Route path="categories" element={<CategoryPage />} />
+              {/* Category & Dish */}
+              <Route path="categories" element={<CategoryPage />} />
 
-            <Route element={<PermissionRoute permission="DISH_VIEW" />}>
-              <Route path="dishes" element={<DishPage />} />
+              <Route element={<PermissionRoute permission="DISH_VIEW" />}>
+                <Route path="dishes" element={<DishPage />} />
+              </Route>
+              
+              {/* Recipe */}
+              <Route path="recipes" element={<RecipePage />} />
+
+              {/* Orders */}
+              <Route path="orders" element={<OrderPage />} />
+              <Route path="orders/create" element={<OrderCreatePage />} />
+
+              {/* 👉 Invoice Detail (Module 09) */}
+              <Route path="invoices/:invoiceId" element={<InvoiceDetailPage />} />
+
+              {/* ⭐ PAYMENT – Module 10 */}
+              <Route path="payments" element={<PaymentPage />} />
+
+              <Route path="reports/revenue" element={<RevenueReportPage />} />
+              <Route path="reports/top-dishes" element={<TopDishReportPage />} />
+              <Route path="reports/ingredients" element={<IngredientReportPage />} />
+
+              <Route path="roles" element={<RolePage />} />
+              <Route path="permissions" element={<PermissionPage />} />
+
+              {/* Audit Log */}
+              <Route element={<PermissionRoute permission="AUDIT_VIEW" />}>
+                <Route path="audit-logs" element={<AuditLogPage />} />
+              </Route>            
+
+              {/* MODULE 16: TABLE MANAGEMENT */}
+              <Route path="tables" element={<TablePage />} />
+
+              {/* Settings */}
+              <Route path="settings" element={<AdvancedSettingsPage  />} />
+
+              <Route path="members" element={<MemberPage />} />
+
+              <Route path="403" element={<ForbiddenPage />} />
+
+              {/* Audit Log */}
+              <Route element={<PermissionRoute permission="ADMIN_BACKUP" />}>
+                <Route path="admin/backup-restore" element={<BackupRestorePage />} />
+              </Route>  
             </Route>
-            
-            {/* Recipe */}
-            <Route path="recipes" element={<RecipePage />} />
-
-            {/* Orders */}
-            <Route path="orders" element={<OrderPage />} />
-            <Route path="orders/create" element={<OrderCreatePage />} />
-
-            {/* 👉 Invoice Detail (Module 09) */}
-            <Route path="invoices/:invoiceId" element={<InvoiceDetailPage />} />
-
-            {/* ⭐ PAYMENT – Module 10 */}
-            <Route path="payments" element={<PaymentPage />} />
-
-            <Route path="reports/revenue" element={<RevenueReportPage />} />
-            <Route path="reports/top-dishes" element={<TopDishReportPage />} />
-            <Route path="reports/ingredients" element={<IngredientReportPage />} />
-
-            <Route path="roles" element={<RolePage />} />
-            <Route path="permissions" element={<PermissionPage />} />
-
-            {/* Audit Log */}
-            <Route element={<PermissionRoute permission="AUDIT_VIEW" />}>
-              <Route path="audit-logs" element={<AuditLogPage />} />
-            </Route>            
-
-            {/* MODULE 16: TABLE MANAGEMENT */}
-            <Route path="tables" element={<TablePage />} />
-
-            {/* Settings */}
-            <Route path="settings" element={<AdvancedSettingsPage  />} />
-
-            <Route path="members" element={<MemberPage />} />
-
-            <Route path="403" element={<ForbiddenPage />} />
-
-            {/* Audit Log */}
-            <Route element={<PermissionRoute permission="ADMIN_BACKUP" />}>
-              <Route path="admin/backup-restore" element={<BackupRestorePage />} />
-            </Route>  
-
           </Route>
         </Route>
       </Routes>

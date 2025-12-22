@@ -10,6 +10,9 @@
 import { Route } from "react-router-dom";
 import PosLayout from "../layouts/PosLayout";
 
+import ModeRoute from "../components/common/ModeRoute";
+import { APP_MODE } from "../constants/appMode";
+
 // ⚠️ Lưu ý: 3 page dưới đây sẽ được tạo ở các bước sau trong Module 19
 // Tạm thời cứ import sẵn, nếu chưa tạo file thì IDE sẽ báo lỗi, 
 // nhưng đó là lỗi "chưa tạo file" chứ không phải logic sai.
@@ -22,6 +25,8 @@ import SimplePosTablePage from "../pages/pos/simple/SimplePosTablePage";
 import SimplePosOrderPage from "../pages/pos/simple/SimplePosOrderPage";
 
 import TabletPosEntry from "../pages/pos/tablet/TabletPosEntry";
+import PosOrderListPage from "../pages/pos/PosOrderListPage";
+import PosHomePage from "../pages/pos/PosHomePage";
 /**
  * Hàm renderPosRoutes
  * ----------------------------------------------------
@@ -44,41 +49,40 @@ import TabletPosEntry from "../pages/pos/tablet/TabletPosEntry";
  */
 export const renderPosRoutes = () => {
   return (
-    <Route path="/pos" element={<PosLayout />}>
-      {/* 
-        Trang danh sách bàn ở chế độ POS
-        URL: /pos/table
-        - Sẽ hiển thị danh sách bàn dạng lưới (grid)
-        - Khi chọn 1 bàn → chuyển sang màn order
-      */}
-      <Route path="table" element={<PosTablePage />} />
+    <Route element={<ModeRoute allowModes={[APP_MODE.POS, APP_MODE.POS_SIMPLE, APP_MODE.KITCHEN]} />}>
+      <Route path="/pos" element={<PosLayout />}>
+        {/* POS theo bàn – chỉ cho mode POS */}
+        <Route element={<ModeRoute allowModes={[APP_MODE.POS]} />}>
+          {/* ==========================================================
+          EPIC 4A – POS Home (Menu lớn)
+          - Route index: /pos
+          - Tablet/mobile vào POS sẽ thấy menu thay vì vào thẳng màn bàn
+          ========================================================== */}
+          <Route index element={<PosHomePage />} />
+          
+          <Route path="table" element={<PosTablePage />} />
+          <Route path="table/:tableId/order" element={<PosOrderPage />} />
+          <Route path="table/:tableId/summary" element={<PosOrderSummaryPage />} />
+          <Route path="tablet" element={<TabletPosEntry />} />
+          {/* ==========================================================
+          - Hiển thị danh sách order chưa thanh toán
+          - Thanh toán/in hóa đơn mà không cần vào Order Admin
+           ========================================================== */}
+          <Route path="orders" element={<PosOrderListPage />} />
+        </Route>
 
-      {/* 
-        Trang order cho 1 bàn cụ thể
-        URL: /pos/table/:tableId/order
-        - Hiển thị danh sách món + giỏ hàng
-        - :tableId là param trên URL, dùng useParams() để đọc
-      */}
-      <Route path="table/:tableId/order" element={<PosOrderPage />} />
+        {/* Kitchen – chỉ cho mode KITCHEN */}
+        <Route element={<ModeRoute allowModes={[APP_MODE.KITCHEN]} />}>
+          <Route path="kitchen" element={<PosKitchenPage />} />
+        </Route>
 
-      {/* 
-        Trang xác nhận order trước khi gửi
-        URL: /pos/table/:tableId/summary
-        - Nhận dữ liệu giỏ hàng từ state điều hướng (navigate)
-        - Gửi order (POST/PUT) lên server
-      */}
-      <Route
-        path="table/:tableId/summary"
-        element={<PosOrderSummaryPage />}
-      />
-
-      <Route path="kitchen" element={<PosKitchenPage />} />
-
-      <Route path="simple" element={<SimplePosTablePage />} />
-      <Route path="simple/order" element={<SimplePosOrderPage />} /> 
-
-      <Route path="tablet" element={<TabletPosEntry />} />
-
+        {/* POS Simple – chỉ cho mode POS_SIMPLE */}
+        <Route element={<ModeRoute allowModes={[APP_MODE.POS_SIMPLE]} />}>
+          <Route path="simple" element={<SimplePosTablePage />} />
+          <Route path="simple/order" element={<SimplePosOrderPage />} />
+        </Route>
+      </Route>
     </Route>
   );
 };
+

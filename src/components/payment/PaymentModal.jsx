@@ -39,9 +39,51 @@ import { getInvoiceByOrderId } from "../../api/invoiceApi";
 
 import { getMemberById, getActiveMemberByPhone } from "../../api/memberApi";
 
+import { APP_MODE } from "../../constants/appMode";
+
 const { Text } = Typography;
 
-export default function PaymentModal({ open, onClose, order, reloadOrders }) {
+// ======================================================================
+// ONLINE PAYMENT – OPTION A
+// ----------------------------------------------------------------------
+// Mục tiêu:
+//  - OFFLINE: dùng được ngay (CASH, BANK_MANUAL)
+//  - ONLINE: hiển thị nhưng DISABLE (MOMO, CREDIT...)
+//  - Chuẩn bị sẵn kiến trúc, KHÔNG gọi cổng thanh toán
+// ======================================================================
+
+// Phương thức OFFLINE (thanh toán tại quầy)
+const OFFLINE_METHODS = [
+  { value: "CASH", label: "Tiền mặt" },
+  { value: "BANK_MANUAL", label: "Chuyển khoản (thủ công)" },
+];
+
+// Phương thức ONLINE (chưa tích hợp – chỉ hiển thị)
+const ONLINE_METHODS = [
+  { value: "MOMO", label: "MoMo (sắp có)", disabled: true },
+  { value: "CREDIT", label: "Thẻ / POS (sắp có)", disabled: true },
+];
+
+// Set để check nhanh ONLINE method
+const ONLINE_METHOD_SET = new Set(["MOMO", "CREDIT"]);
+
+export default function PaymentModal({
+  open,
+  onClose,
+  order,
+  reloadOrders,
+
+  // ==================================================================
+  // EPIC 2 – Điều hướng theo Mode (ADMIN / POS / POS_SIMPLE)
+  // ------------------------------------------------------------------
+  // - contextMode: xác định ngữ cảnh sử dụng PaymentModal
+  // - onPaidSuccess: callback tuỳ chọn để page cha tự xử lý sau thanh toán
+  // - successRedirect: route tuỳ chọn nếu muốn điều hướng cố định
+  // ==================================================================
+  contextMode = APP_MODE.ADMIN,
+  onPaidSuccess = null,
+  successRedirect = null,
+}) {
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
@@ -219,6 +261,19 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
   const handleSubmit = async (values) => {
     if (!order) return;
 
+    // ==========================================================
+    // ONLINE PAYMENT – OPTION A
+    // ----------------------------------------------------------
+    // Nếu user chọn phương thức ONLINE
+    // → chặn submit, chưa cho thanh toán
+    // ==========================================================
+    if (ONLINE_METHOD_SET.has(values.method)) {
+      message.info(
+        "Thanh toán online (MoMo / Thẻ) sẽ được hỗ trợ trong phiên bản sau."
+      );
+      return;
+    }
+
     try {
       setSubmitting(true);
 
@@ -262,26 +317,72 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
         await reloadOrders();
       }
 
-      // Sau khi thanh toán xong → gọi API lấy invoice theo order
+      // Sau khi thanh toán xong → (tuỳ mode) có thể lấy invoice để phục vụ điều hướng / in ấn
+      // --------------------------------------------------------------------
+      // ✅ EPIC 2 – PaymentModal flow theo mode:
+      //  - ADMIN: điều hướng sang trang chi tiết hóa đơn (giữ hành vi cũ)
+      //  - POS: không vào Admin Invoice, sẽ quay về màn POS Order List
+      //  - POS_SIMPLE: không điều hướng, page cha sẽ reset để bán tiếp
+      // --------------------------------------------------------------------
+      let invoice = null;
       try {
-        const invoice = await getInvoiceByOrderId(order.id);
-        if (invoice && invoice.id) {
-          // Điều hướng sang trang chi tiết hóa đơn
-          navigate(`/invoices/${invoice.id}`);
-        } else {
-          message.warning(
-            "Thanh toán xong nhưng chưa tìm thấy hóa đơn. Hãy kiểm tra lại ở mục Hóa đơn."
-          );
-        }
+        invoice = await getInvoiceByOrderId(order.id);
       } catch (err) {
+        // Không chặn flow: có thể payment ok nhưng API invoice lỗi tạm thời
         console.error(err);
-        /*message.error(
-          "Thanh toán xong nhưng không lấy được thông tin hóa đơn"
-        );*/
       }
 
-      // Đóng modal sau khi xong
+      // (1) Nếu page cha truyền callback → ưu tiên callback
+      if (typeof onPaidSuccess === "function") {
+        try {
+          await onPaidSuccess({ invoice, orderId: order.id });
+        } catch (err) {
+          console.error("Lỗi onPaidSuccess:", err);
+        } finally {
+          // Đóng modal sau khi xong
+          onClose();
+        }
+        return;
+      }
+
+      // (2) Nếu truyền successRedirect → điều hướng cố định
+      if (successRedirect) {
+        onClose();
+        navigate(successRedirect);
+        return;
+      }
+
+      // (3) Fallback theo contextMode
+      if (contextMode === APP_MODE.ADMIN) {
+        // ADMIN: giữ hành vi cũ – điều hướng sang trang chi tiết hóa đơn
+        if (invoice && invoice.id) {
+          onClose();
+          navigate(`/invoices/${invoice.id}`);
+          return;
+        }
+        message.warning(
+          "Thanh toán xong nhưng chưa tìm thấy hóa đơn. Hãy kiểm tra lại ở mục Hóa đơn."
+        );
+        onClose();
+        return;
+      }
+
+      if (contextMode === APP_MODE.POS) {
+        // POS: quay về màn POS Order List (thu ngân thao tác ở đó)
+        onClose();
+        navigate("/pos/orders");
+        return;
+      }
+
+      if (contextMode === APP_MODE.POS_SIMPLE) {
+        // POS Simple: không điều hướng, chỉ đóng modal
+        onClose();
+        return;
+      }
+
+      // Fallback an toàn
       onClose();
+
     } catch (err) {
       console.error(err);
       /*message.error(
@@ -600,11 +701,7 @@ export default function PaymentModal({ open, onClose, order, reloadOrders }) {
           >
             <Select
               placeholder="Chọn phương thức"
-              options={[
-                { value: "CASH", label: "Tiền mặt" },
-                { value: "MOMO", label: "Momo" },
-                { value: "BANK_TRANSFER", label: "Chuyển khoản" },
-              ]}
+              options={[...OFFLINE_METHODS, ...ONLINE_METHODS]}
             />
           </Form.Item>
 

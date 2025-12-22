@@ -32,7 +32,7 @@ export default function LoginPage() {
 
       message.success("Đăng nhập thành công");
 
-      navigate("/dashboard"); // Điều hướng Dashboard
+      navigate("/mode"); // ✅ Sau login phải chọn Working Mode (baseline refactor)
     } catch (error) {
       console.error("Lỗi đăng nhập:", error);
       //message.error("Tên đăng nhập hoặc mật khẩu không đúng");

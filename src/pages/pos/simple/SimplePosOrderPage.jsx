@@ -43,6 +43,7 @@ import MotionWrapper from "../../../components/common/MotionWrapper";
 import { getDishes } from "../../../api/dishApi";
 import { simpleCreateOrder } from "../../../api/simplePosApi";
 import PaymentModal from "../../../components/payment/PaymentModal";
+import { APP_MODE } from "../../../constants/appMode";
 
 const { Text, Title } = Typography;
 
@@ -279,13 +280,27 @@ export default function SimplePosOrderPage() {
   // 10. Đóng PaymentModal
   // ---------------------------------------------------------------------------
   const handleClosePaymentModal = () => {
-    setPaymentModalOpen(false);
-    // Sau khi thanh toán xong, PaymentModal sẽ tự navigate sang trang hóa đơn.
-    // Tuỳ ý: sau đó bạn có thể quay lại SimplePosTablePage bằng back browser.
+  setPaymentModalOpen(false);
+  // Chỉ đóng modal (người dùng bấm X hoặc click outside)
+  // Lưu ý: Sau EPIC 2, PaymentModal KHÔNG tự navigate cứng nữa.
   };
 
   // ---------------------------------------------------------------------------
-  // 11. Render
+  // 11. Sau khi thanh toán thành công (POS Simple)
+  // ---------------------------------------------------------------------------
+  // Mục tiêu:
+  //  - Đóng PaymentModal
+  //  - Reset giỏ hàng để bán tiếp
+  //  - Giữ nguyên tableName (nếu muốn) hoặc có thể navigate về /pos/simple
+  const handlePaidSuccess = async () => {
+    setPaymentModalOpen(false);
+    setCurrentOrder(null);
+    setCartItems([]);
+    message.success("Thanh toán xong. Sẵn sàng tạo đơn mới.");
+  };
+
+  // ---------------------------------------------------------------------------
+  // 12. Render
   // ---------------------------------------------------------------------------
   if (loadingDishes) {
     return (
@@ -529,6 +544,9 @@ export default function SimplePosOrderPage() {
         order={currentOrder}
         // Simple POS không cần reloadOrders → truyền null/undefined
         reloadOrders={null}
+        // ✅ EPIC 2: POS Simple dùng chung PaymentModal nhưng flow riêng
+        contextMode={APP_MODE.POS_SIMPLE}
+        onPaidSuccess={handlePaidSuccess}
       />
     </MotionWrapper>
   );

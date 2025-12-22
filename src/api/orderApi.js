@@ -19,11 +19,17 @@ export const createOrder = async (data) => {
   return res.data;
 };
 
-// ===========================
-// Lấy danh sách order
-// ===========================
-export const getOrders = async () => {
-  const res = await api.get("/api/orders");
+// ===========================================================
+// EPIC 3 – getOrders có hỗ trợ params filter
+// params:
+//  - paid: true | false | undefined
+//      false → NEW + SERVING
+//      true  → PAID
+//  - status: NEW | SERVING | PAID | CANCELED (optional)
+//  - from/to: yyyy-MM-dd HH:mm:ss (optional)
+// ===========================================================
+export const getOrders = async (params = {}) => {
+  const res = await api.get("/api/orders", { params });
   return res.data;
 };
 
