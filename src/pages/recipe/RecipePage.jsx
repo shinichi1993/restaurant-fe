@@ -45,6 +45,7 @@ import { getDishes } from "../../api/dishApi";
 import { getIngredients } from "../../api/ingredientApi";
 
 import RecipeFormModal from "../../components/recipe/RecipeFormModal";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 export default function RecipePage() {
   // ---------------------------------------------------------------------------
@@ -187,32 +188,54 @@ export default function RecipePage() {
   // RENDER
   // ---------------------------------------------------------------------------
   return (
-    <Card variant="outlined" style={{ margin: 20 }}>
-      {/* Khu vực chọn món */}
-      <Space style={{ marginBottom: 16 }}>
-        <Select
-          placeholder="Chọn món ăn"
-          style={{ width: 300 }}
-          value={selectedDish}
-          onChange={(v) => setSelectedDish(v)}
-          options={dishList}
-        />
+    <Card 
+     variant="outlined" 
+     style={{ margin: 20 }}
+     title={<span style={{ fontSize: 26, fontWeight: 600 }}>Quản lý định lượng món ăn</span>}
+     >
+      {/* =========================================================
+          FILTER BAR – CHỌN MÓN & ACTION
+      ========================================================= */}
+      <PageFilterBar
+        filters={
+          <>
+            {/* ================= CHỌN MÓN ĂN ================= */}
+            <Select
+              placeholder="Chọn món ăn"
+              style={{ width: 320 }}
+              value={selectedDish}
+              onChange={(v) => setSelectedDish(v)}
+              options={dishList}
+              allowClear
+            />
+          </>
+        }
+        actions={
+          <>
+            {/* ================= THÊM NGUYÊN LIỆU ================= */}
+            <Button
+              type="primary"
+              disabled={!selectedDish}
+              onClick={() => {
+                setEditingItem(null); // thêm mới
+                setOpenForm(true);
+              }}
+            >
+              Thêm nguyên liệu
+            </Button>
 
-        <Button
-          type="primary"
-          disabled={!selectedDish}
-          onClick={() => {
-            setEditingItem(null); // thêm mới
-            setOpenForm(true);
-          }}
-        >
-          Thêm nguyên liệu
-        </Button>
-
-        <Button danger disabled={!selectedDish} onClick={handleReset}>
-          Reset công thức
-        </Button>
-      </Space>
+            {/* ================= RESET CÔNG THỨC ================= */}
+            <Button
+              danger
+              disabled={!selectedDish}
+              onClick={handleReset}
+            >
+              Reset công thức
+            </Button>
+          </>
+        }
+      />
+      
 
       {/* Bảng định lượng */}
       <Table

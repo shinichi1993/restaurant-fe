@@ -40,6 +40,7 @@ import {
 } from "../../api/categoryApi";
 
 import CategoryFormModal from "../../components/category/CategoryFormModal";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 export default function CategoryPage() {
   // State danh sách danh mục
@@ -156,72 +157,72 @@ export default function CategoryPage() {
     <Card
       variant="outlined"
       style={{ margin: 20 }}
-      title="Quản lý danh mục món ăn"
+      title={<span style={{ fontSize: 26, fontWeight: 600 }}>Quản lý danh mục món ăn</span>}
     >
-      {/* Hàng filter + nút hành động */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        {/* Ô tìm kiếm theo tên danh mục */}
-        <Col span={8}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder="Tìm theo tên danh mục"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </Col>
 
-        {/* Lọc theo trạng thái */}
-        <Col span={4}>
-          <Select
-            placeholder="Lọc trạng thái"
-            style={{ width: "100%" }}
-            allowClear
-            value={status || undefined}
-            onChange={(v) => setStatus(v || "")}
-            options={[
-              { value: "ACTIVE", label: "Hoạt động" },
-              { value: "INACTIVE", label: "Ngừng" },
-            ]}
-          />
-        </Col>
+      {/* =========================================================
+          FILTER BAR – DÙNG TEMPLATE CHUNG
+          Bên trái: tìm kiếm + lọc + xóa lọc + làm mới
+          Bên phải: hành động chính
+      ========================================================= */}
+      <PageFilterBar
+        filters={
+          <>
+            {/* ================= TÌM THEO TÊN ================= */}
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder="Tìm theo tên danh mục"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 260 }}
+            />
 
-        {/* Nút Xóa lọc (Rule 30) */}
-        <Col span={4}>
-          <Button
-            icon={<ClearOutlined />}
-            style={{ width: "100%" }}
-            onClick={clearFilter}
-          >
-            Xóa lọc
-          </Button>
-        </Col>
+            {/* ================= LỌC TRẠNG THÁI ================= */}
+            <Select
+              placeholder="Lọc trạng thái"
+              allowClear
+              value={status || undefined}
+              onChange={(v) => setStatus(v || "")}
+              style={{ width: 160 }}
+              options={[
+                { value: "ACTIVE", label: "Hoạt động" },
+                { value: "INACTIVE", label: "Ngừng" },
+              ]}
+            />
 
-        {/* Nút Làm mới */}
-        <Col span={4}>
-          <Button
-            icon={<ReloadOutlined />}
-            style={{ width: "100%" }}
-            onClick={loadCategories}
-          >
-            Làm mới
-          </Button>
-        </Col>
+            {/* ================= XÓA LỌC (RULE 30) ================= */}
+            <Button
+              icon={<ClearOutlined />}
+              onClick={clearFilter}
+            >
+              Xóa lọc
+            </Button>
 
-        {/* Nút Thêm danh mục */}
-        <Col span={4}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            style={{ width: "100%" }}
-            onClick={() => {
-              setEditingCategory(null);
-              setOpenForm(true);
-            }}
-          >
-            Thêm danh mục
-          </Button>
-        </Col>
-      </Row>
+            {/* ================= LÀM MỚI ================= */}
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadCategories}
+            >
+              Làm mới
+            </Button>
+          </>
+        }
+        actions={
+          <>
+            {/* ================= THÊM DANH MỤC ================= */}
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditingCategory(null);
+                setOpenForm(true);
+              }}
+            >
+              Thêm danh mục
+            </Button>
+          </>
+        }
+      /> 
 
       {/* Bảng danh mục */}
       <Table

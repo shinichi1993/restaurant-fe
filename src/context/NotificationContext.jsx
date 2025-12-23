@@ -11,8 +11,8 @@
 // ======================================================================
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { notification } from "antd";
-import { getUnreadNotifications } from "../api/notificationApi";
+import { notification as antdNotification } from "antd";
+import { createNotificationSocket } from "../utils/notificationSocket";
 
 // Tạo context, default = null
 const NotificationContext = createContext(null);
@@ -35,72 +35,34 @@ export function NotificationProvider({ children }) {
   // Danh sách thông báo chưa đọc
   const [unread, setUnread] = useState([]);
 
-  // ID của các thông báo đã show toast (để tránh show lại)
-  const [shownIds, setShownIds] = useState([]);
-
-  // ============================================================
-  // HÀM GỌI API LẤY UNREAD
-  //  - Không chạy nếu:
-  //      + Chưa đăng nhập (không có token)
-  //      + Đang ở chế độ POS (/pos/...)
-  // ============================================================
-  const loadUnread = async () => {
-    // Nếu đang ở POS → không gọi API, không show toast
-    if (isPOSPage()) {
-      return;
-    }
-
-    // Nếu chưa login → không gọi API, clear state rồi thoát
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      setUnread([]);
-      return;
-    }
-
-    try {
-      const data = await getUnreadNotifications();
-      setUnread(data || []);
-
-      // Lọc những thông báo mới chưa được hiển thị toast
-      const newNoti = (data || []).filter((n) => !shownIds.includes(n.id));
-
-      newNoti.forEach((n) => {
-        notification.open({
-          message: n.title,
-          description: n.message,
-          placement: "bottomRight",
-          duration: 4,
-        });
-
-        setShownIds((prev) => [...prev, n.id]);
-      });
-    } catch (e) {
-      console.error("Lỗi load unread notifications:", e);
-    }
-  };
-
-  // ============================================================
-  // POLLING – mỗi 5 giây
-  //  - Lúc mount: gọi loadUnread()
-  //  - Sau đó cứ 5 giây lại check:
-  //      + Không gọi gì nếu đang ở POS
-  //      + Có token thì gọi API, không có token thì clear unread
-  // ============================================================
   useEffect(() => {
-    // Gọi lần đầu nếu không ở POS
-    if (!isPOSPage()) {
-      loadUnread();
-    }
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
 
-    const timer = setInterval(() => {
-      if (!isPOSPage()) {
-        loadUnread();
-      }
-    }, 100000);
+    // Tạo socket realtime cho notification
+    const client = createNotificationSocket((payload) => {
+      // 1. Update danh sách unread (push đầu list)
+      setUnread((prev) => {
+        const exists = prev.some((n) => n.id === payload.id);
+        if (exists) return prev;
+        return [payload, ...prev];
+      });
 
-    return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // chỉ set timer 1 lần khi app mount
+      // 2. Show toast DUY NHẤT cho notification mới
+      antdNotification.open({
+        message: payload.title,
+        description: payload.message,
+        placement: "bottomRight",
+        duration: 4,
+      });
+    });
+
+    client.activate();
+
+    return () => {
+      client.deactivate();
+    };
+  }, []);
 
   // ============================================================
   // PROVIDER

@@ -28,6 +28,7 @@ import {
   SearchOutlined,
   PlusOutlined,
   ReloadOutlined,
+  ClearOutlined,
 } from "@ant-design/icons";
 
 import {
@@ -38,6 +39,7 @@ import {
   deleteRole,
 } from "../../api/roleApi";
 import RoleFormModal from "../../components/role/RoleFormModal";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 export default function RolePage() {
   const [roles, setRoles] = useState([]);
@@ -61,6 +63,13 @@ export default function RolePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ----------------------------------------------------------
+  // XÓA LỌC (Rule 30)
+  // ----------------------------------------------------------
+  const clearFilter = () => {
+    setKeyword("");
   };
 
   useEffect(() => {
@@ -170,39 +179,53 @@ export default function RolePage() {
 
   return (
     <Card
-      title="Quản lý vai trò"
+      title={<span style={{ fontSize: 26, fontWeight: 600 }}>Quản lý vai trò</span>}
       variant="outlined"
       style={{ margin: 20 }}
-      extra={
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
-          Thêm vai trò
-        </Button>
-      }
     >
       {/* Bộ lọc */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={8}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder="Tìm theo tên / mã vai trò..."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-          />
-        </Col>
-        <Col span={4}>
-          <Button
-            icon={<ReloadOutlined />}
-            style={{ width: "100%" }}
-            onClick={loadRoles}
-          >
-            Làm mới
-          </Button>
-        </Col>
-      </Row>
+      <PageFilterBar
+        filters={
+          <>
+            {/* ================= TÌM KIẾM ROLE ================= */}
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder="Tìm theo tên / mã vai trò..."
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              style={{ width: 260 }}
+            />
+
+            {/* ================= LÀM MỚI ================= */}
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadRoles}
+            >
+              Làm mới
+            </Button>
+
+            {/* ================= XÓA LỌC – RULE 30 ================= */}
+            <Button
+              icon={<ClearOutlined />}
+              onClick={clearFilter}
+            >
+              Xóa lọc
+            </Button>
+          </>
+        }
+        actions={
+          <>
+            {/* ================= THÊM VAI TRÒ ================= */}
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreate}
+            >
+              Thêm vai trò
+            </Button>
+          </>
+        }
+      />
 
       {/* Bảng dữ liệu */}
       <Table

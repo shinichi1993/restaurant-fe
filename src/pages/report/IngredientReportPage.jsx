@@ -35,6 +35,7 @@ import {
   exportStockEntryExcel,
   exportStockEntryPdf,
 } from "../../api/reportApi";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 const { RangePicker } = DatePicker;
 const { Title } = Typography;
@@ -206,51 +207,48 @@ export default function IngredientReportPage() {
 
   // ---------------------- UI ----------------------
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20 }} >
       {/* Bộ lọc */}
-      <Card variant="outlined" style={{ marginBottom: 16 }} title="Bộ lọc báo cáo">
-        <Row gutter={16}>
-          <Col span={8}>
-            <RangePicker
-              style={{ width: "100%" }}
-              value={
-                fromDate && toDate ? [dayjs(fromDate), dayjs(toDate)] : null
-              }
-              onChange={(dates) => {
-                if (!dates) {
-                  setFromDate(null);
-                  setToDate(null);
-                } else {
-                  setFromDate(dates[0]);
-                  setToDate(dates[1]);
-                }
-              }}
-            />
-          </Col>
+      <Card variant="outlined" style={{ marginBottom: 16 }} title={<span style={{ fontSize: 26, fontWeight: 600 }}>Báo cáo nguyên liệu và Kho</span>}>
+        <PageFilterBar
+          filters={
+            <>
+              {/* ================= LỌC KHOẢNG NGÀY ================= */}
+              <RangePicker
+                value={fromDate && toDate ? [dayjs(fromDate), dayjs(toDate)] : null}
+                onChange={(dates) => {
+                  if (!dates) {
+                    setFromDate(null);
+                    setToDate(null);
+                  } else {
+                    setFromDate(dates[0]);
+                    setToDate(dates[1]);
+                  }
+                }}
+                style={{ width: 260 }}
+              />
 
-          <Col span={4}>
-            <Button
-              icon={<ReloadOutlined />}
-              style={{ width: "100%" }}
-              onClick={() => {
-                loadUsage();
-                loadStock();
-              }}
-            >
-              Lọc
-            </Button>
-          </Col>
+              {/* ================= NÚT LỌC ================= */}
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => {
+                  loadUsage();
+                  loadStock();
+                }}
+              >
+                Lọc
+              </Button>
 
-          <Col span={4}>
-            <Button
-              icon={<ClearOutlined />}
-              style={{ width: "100%" }}
-              onClick={clearFilter}
-            >
-              Xóa lọc
-            </Button>
-          </Col>
-        </Row>
+              {/* ================= XÓA LỌC – RULE 30 ================= */}
+              <Button
+                icon={<ClearOutlined />}
+                onClick={clearFilter}
+              >
+                Xóa lọc
+              </Button>
+            </>
+          }
+        />
       </Card>
 
       {/* TIÊU HAO */}

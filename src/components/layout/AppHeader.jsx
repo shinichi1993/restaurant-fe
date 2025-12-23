@@ -1,26 +1,19 @@
-// AppHeader.jsx – Header hiển thị thông tin user + nút logout
-// - Lấy thông tin user từ API /api/users/me
-// - Hiển thị avatar + username
-// - Dropdown chứa: Thông tin cá nhân, Đổi mật khẩu, Đăng xuất
-// - UI chuẩn Rule 27, 29
+// AppHeader.jsx – User action (avatar + dropdown)
+// ❗ KHÔNG DÙNG Layout.Header
 
 import { useEffect, useState } from "react";
-import { Layout, Avatar, Dropdown, Space, Typography, message } from "antd";
+import { Avatar, Dropdown, Space, Typography, message } from "antd";
 import { UserOutlined, LogoutOutlined } from "@ant-design/icons";
-
 import { getMyInfo } from "../../api/userApi";
 import { logout } from "../../api/authApi";
-
 import { useNavigate } from "react-router-dom";
 
-const { Header } = Layout;
 const { Text } = Typography;
 
 export default function AppHeader() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
-  // Lấy thông tin user hiện tại
   useEffect(() => {
     loadUser();
   }, []);
@@ -34,38 +27,22 @@ export default function AppHeader() {
     }
   };
 
-  // Logout
   const handleLogout = async () => {
     try {
-      // 🟢 Sửa ngay dòng này bên trong items[] → onClick của Logout
-        if (user) {
-        await logout(user.username);
-        }
-
-      // Xóa token
+      if (user) await logout(user.username);
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
-
       navigate("/login");
       message.success("Đăng xuất thành công");
     } catch (err) {
       console.error("Lỗi đăng xuất:", err);
-      //message.error("Không thể đăng xuất");
     }
   };
 
   const items = [
-    {
-      key: "1",
-      label: "Thông tin cá nhân",
-    },
-    {
-      key: "2",
-      label: "Đổi mật khẩu",
-    },
-    {
-      type: "divider",
-    },
+    { key: "1", label: "Thông tin cá nhân" },
+    { key: "2", label: "Đổi mật khẩu" },
+    { type: "divider" },
     {
       key: "3",
       label: (
@@ -77,44 +54,22 @@ export default function AppHeader() {
     },
   ];
 
-  // 🟢 Thêm đoạn này TRƯỚC dòng return (...) của component
-    if (!user) {
-    return (
-        <Header
-        style={{
-            background: "#fff",
-            padding: "0 24px",
-            display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            height: 64,
-            boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-        }}
-        >
-        <Text>Đang tải...</Text>
-        </Header>
-    );
-    }
-
+  if (!user) return null;
 
   return (
-    <Header
-      style={{
-        background: "#fff",
-        padding: "0 24px",
-        display: "flex",
-        justifyContent: "flex-end",
-        alignItems: "center",
-        height: 64,
-        boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-      }}
-    >
-      <Dropdown menu={{ items }} placement="bottomRight">
-        <Space style={{ cursor: "pointer" }}>
-          <Avatar icon={<UserOutlined />} />
-          <Text strong>{user?.username}</Text>
-        </Space>
-      </Dropdown>
-    </Header>
+    <Dropdown menu={{ items }} placement="bottomRight">
+      <Space
+        style={{
+          cursor: "pointer",
+          height: 36,                // ⭐ QUAN TRỌNG
+          display: "flex",
+          alignItems: "center",
+          color: "#fff",
+        }}
+      >
+        <Avatar icon={<UserOutlined />} />
+        <Text style={{ color: "#fff" }}>{user.username}</Text>
+      </Space>
+    </Dropdown>
   );
 }

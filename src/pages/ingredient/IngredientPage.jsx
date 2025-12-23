@@ -41,6 +41,7 @@ import {
 
 import IngredientFormModal from "../../components/ingredient/IngredientFormModal";
 import IngredientDetailModal from "../../components/ingredient/IngredientDetailModal";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 export default function IngredientPage() {
   // State danh sách nguyên liệu
@@ -171,57 +172,74 @@ export default function IngredientPage() {
   ];
 
   return (
-    <Card variant="outlined" style={{ margin: 20 }}>
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm nguyên liệu"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </Col>
+    <Card 
+     variant="outlined" 
+     style={{ margin: 20 }}
+     title={<span style={{ fontSize: 26, fontWeight: 600 }}>Quản lý nguyên liệu</span>}
+     >
+      {/* =========================================================
+          FILTER BAR – DÙNG TEMPLATE CHUNG
+          Bên trái: tìm kiếm + lọc + xóa lọc + làm mới
+          Bên phải: hành động chính
+      ========================================================= */}
+      <PageFilterBar
+        filters={
+          <>
+            {/* ================= TÌM KIẾM ================= */}
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder="Tìm kiếm nguyên liệu"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 260 }}
+            />
 
-        <Col span={4}>
-          <Select
-            placeholder="Lọc trạng thái"
-            style={{ width: "100%" }}
-            allowClear
-            value={status || undefined}
-            onChange={(v) => setStatus(v || "")}
-            options={[
-              { value: "ACTIVE", label: "Hoạt động" },
-              { value: "INACTIVE", label: "Ngừng" },
-            ]}
-          />
-        </Col>
+            {/* ================= LỌC TRẠNG THÁI ================= */}
+            <Select
+              placeholder="Lọc trạng thái"
+              allowClear
+              value={status || undefined}
+              onChange={(v) => setStatus(v || "")}
+              style={{ width: 160 }}
+              options={[
+                { value: "ACTIVE", label: "Hoạt động" },
+                { value: "INACTIVE", label: "Ngừng" },
+              ]}
+            />
 
-        <Col span={6}>
-          <Space>
-            <Button icon={<ReloadOutlined />} onClick={loadIngredients}>
+            {/* ================= LÀM MỚI ================= */}
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadIngredients}
+            >
               Làm mới
             </Button>
 
-            <Button icon={<ClearOutlined />} onClick={handleResetFilter}>
+            {/* ================= XÓA LỌC (RULE 30) ================= */}
+            <Button
+              icon={<ClearOutlined />}
+              onClick={handleResetFilter}
+            >
               Xóa lọc
             </Button>
-          </Space>
-        </Col>
-
-        <Col span={8}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            style={{ width: "100%" }}
-            onClick={() => {
-              setEditingItem(null);
-              setOpenForm(true);
-            }}
-          >
-            Thêm nguyên liệu
-          </Button>
-        </Col>
-      </Row>
+          </>
+        }
+        actions={
+          <>
+            {/* ================= THÊM NGUYÊN LIỆU ================= */}
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditingItem(null);
+                setOpenForm(true);
+              }}
+            >
+              Thêm nguyên liệu
+            </Button>
+          </>
+        }
+      />
 
       <Table
         rowKey="id"

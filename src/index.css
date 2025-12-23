@@ -8,3 +8,11 @@
   padding: 0;
   box-sizing: border-box;
 }
+
+.ant-badge {
+  line-height: 1;
+}
+
+.ant-badge-count {
+  transform: none !important;
+}

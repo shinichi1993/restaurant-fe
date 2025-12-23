@@ -35,6 +35,7 @@ import {
   exportRevenueExcel,
   exportRevenuePdf,
 } from "../../api/reportApi";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 const { RangePicker } = DatePicker;
 
@@ -136,49 +137,47 @@ export default function RevenueReportPage() {
   ];
 
   return (
-    <Card variant="outlined" style={{ margin: 20 }}>
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={8}>
-          <RangePicker
-            style={{ width: "100%" }}
-            value={fromDate && toDate ? [dayjs(fromDate), dayjs(toDate)] : null}
-            onChange={(dates) => {
-              if (!dates) {
-                setFromDate(null);
-                setToDate(null);
-              } else {
-                setFromDate(dates[0]);
-                setToDate(dates[1]);
-              }
-            }}
-          />
-        </Col>
+    <Card variant="outlined" style={{ margin: 20 }} title={<span style={{ fontSize: 26, fontWeight: 600 }}>Báo cáo doanh thu</span>}>
+      <PageFilterBar
+        filters={
+          <>
+            {/* ================= LỌC KHOẢNG NGÀY ================= */}
+            <RangePicker
+              value={fromDate && toDate ? [dayjs(fromDate), dayjs(toDate)] : null}
+              onChange={(dates) => {
+                if (!dates) {
+                  setFromDate(null);
+                  setToDate(null);
+                } else {
+                  setFromDate(dates[0]);
+                  setToDate(dates[1]);
+                }
+              }}
+              style={{ width: 260 }}
+            />
 
-        <Col span={4}>
-          <Button
-            icon={<ReloadOutlined />}
-            style={{ width: "100%" }}
-            onClick={loadReport}
-            loading={loading}
-          >
-            Lọc
-          </Button>
-        </Col>
+            {/* ================= NÚT LỌC ================= */}
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadReport}
+              loading={loading}
+            >
+              Lọc
+            </Button>
 
-        <Col span={4}>
-          <Button
-            icon={<ClearOutlined />}
-            style={{ width: "100%" }}
-            onClick={clearFilter}
-            disabled={loading}
-          >
-            Xóa lọc
-          </Button>
-        </Col>
-
-        {/* Nhóm nút Export nằm bên phải */}
-        <Col span={8} style={{ textAlign: "right" }}>
-          <Space>
+            {/* ================= XÓA LỌC – RULE 30 ================= */}
+            <Button
+              icon={<ClearOutlined />}
+              onClick={clearFilter}
+              disabled={loading}
+            >
+              Xóa lọc
+            </Button>
+          </>
+        }
+        actions={
+          <>
+            {/* ================= EXPORT EXCEL ================= */}
             <Button
               icon={<FileExcelOutlined />}
               onClick={handleExportExcel}
@@ -186,6 +185,8 @@ export default function RevenueReportPage() {
             >
               Xuất Excel
             </Button>
+
+            {/* ================= EXPORT PDF ================= */}
             <Button
               icon={<FilePdfOutlined />}
               onClick={handleExportPdf}
@@ -193,9 +194,9 @@ export default function RevenueReportPage() {
             >
               Xuất PDF
             </Button>
-          </Space>
-        </Col>
-      </Row>
+          </>
+        }
+      />
 
       {report && (
         <>

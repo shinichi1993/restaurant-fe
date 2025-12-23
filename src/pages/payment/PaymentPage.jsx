@@ -43,6 +43,7 @@ import dayjs from "dayjs";
 
 import { getPayments, getPaymentDetail } from "../../api/paymentApi";
 import PaymentDetailModal from "../../components/payment/PaymentDetailModal";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 const { RangePicker } = DatePicker;
 
@@ -211,53 +212,48 @@ export default function PaymentPage() {
   // RENDER UI
   // ------------------------------------------------------------------
   return (
-    <Card variant="outlined" style={{ margin: 20 }}>
-      {/* Hàng filter trên cùng */}
+    <Card variant="outlined" style={{ margin: 20 }} title={<span style={{ fontSize: 26, fontWeight: 600 }}>Quản lý thanh toán</span>}>
       {/* ==========================================================
           DESKTOP – FILTER (GIỮ NGUYÊN)
-      ========================================================== */}
+          FILTER BAR – PAYMENT
+      ========================================================= */}
       {!isMobile && (
-        <Row gutter={16} style={{ marginBottom: 16 }}>
-          {/* Bộ lọc ngày */}
-          <Col span={10}>
-            <RangePicker
-              style={{ width: "100%" }}
-              value={fromDate && toDate ? [fromDate, toDate] : null}
-              onChange={(dates) => {
-                if (!dates) {
-                  setFromDate(null);
-                  setToDate(null);
-                } else {
-                  setFromDate(dates[0]);
-                  setToDate(dates[1]);
-                }
-              }}
-            />
-          </Col>
+        <PageFilterBar
+          filters={
+            <>
+              {/* ================= LỌC THEO NGÀY THANH TOÁN ================= */}
+              <RangePicker
+                style={{ width: 300 }}
+                value={fromDate && toDate ? [fromDate, toDate] : null}
+                onChange={(dates) => {
+                  if (!dates) {
+                    setFromDate(null);
+                    setToDate(null);
+                  } else {
+                    setFromDate(dates[0]);
+                    setToDate(dates[1]);
+                  }
+                }}
+              />
 
-          {/* Nút Lọc */}
-          <Col span={4}>
-            <Button
-              icon={<ReloadOutlined />}
-              style={{ width: "100%" }}
-              onClick={handleFilter}
-            >
-              Lọc
-            </Button>
-          </Col>
+              {/* ================= NÚT LỌC ================= */}
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={handleFilter}
+              >
+                Lọc
+              </Button>
 
-          {/* Nút Xóa lọc – Rule 30 */}
-          <Col span={4}>
-            <Button
-              type="default"
-              icon={<ClearOutlined />}
-              style={{ width: "100%" }}
-              onClick={handleClearFilter}
-            >
-              Xóa lọc
-            </Button>
-          </Col>
-        </Row>
+              {/* ================= XÓA LỌC (RULE 30) ================= */}
+              <Button
+                icon={<ClearOutlined />}
+                onClick={handleClearFilter}
+              >
+                Xóa lọc
+              </Button>
+            </>
+          }
+        />
       )}
 
       {/* Bảng danh sách payment */}

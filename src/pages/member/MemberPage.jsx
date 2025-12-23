@@ -16,6 +16,7 @@ import {
     restoreMember,
     } from "../../api/memberApi";
 import MemberFormModal from "./MemberFormModal";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 export default function MemberPage() {
     const [search, setSearch] = useState("");
@@ -214,28 +215,42 @@ export default function MemberPage() {
     }, [search]);
 
   return (
-    <Card title="Quản lý hội viên" style={{ minHeight: "80vh" }}>
-      <Space style={{ marginBottom: 16 }}>
-        <Input
-          placeholder="Nhập số điện thoại"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ width: 200 }}
-        />
+    <Card title={<span style={{ fontSize: 26, fontWeight: 600 }}>Quản lý hội viên</span>} style={{ minHeight: "80vh" }}>
+      {/* =========================================================
+          FILTER BAR – DÙNG TEMPLATE CHUNG
+          Bên trái: tìm kiếm hội viên
+          Bên phải: hành động
+      ========================================================= */}
+      <PageFilterBar
+        filters={
+          <>
+            <Input
+              placeholder="Nhập tên hoặc số điện thoại"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 240 }}
+            />
 
-        <Button type="primary" onClick={() => handleSearch()}>
-          Tìm
-        </Button>
-
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setModalOpen(true);
-          }}
-        >
-          Thêm hội viên
-        </Button>
-      </Space>
+            <Button
+              type="primary"
+              onClick={() => handleSearch()}
+            >
+              Tìm
+            </Button>
+          </>
+        }
+        actions={
+          <Button
+            type="primary"
+            onClick={() => {
+              setEditing(null);
+              setModalOpen(true);
+            }}
+          >
+            Thêm hội viên
+          </Button>
+        }
+      />
 
       <Table
         loading={loading}

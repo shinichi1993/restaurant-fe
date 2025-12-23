@@ -16,6 +16,8 @@ import {
   exportTopDishesPdf,
       } from "../../api/reportApi";
 
+import PageFilterBar from "../../components/common/PageFilterBar";
+
 const { RangePicker } = DatePicker;
 
 export default function TopDishReportPage() {
@@ -108,52 +110,59 @@ export default function TopDishReportPage() {
   ];
 
   return (
-    <Card variant="outlined" style={{ margin: 20 }}>
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={8}>
-          <RangePicker
-            style={{ width: "100%" }}
-            value={fromDate && toDate ? [dayjs(fromDate), dayjs(toDate)] : null}
-            onChange={(dates) => {
-              if (!dates) {
-                setFromDate(null);
-                setToDate(null);
-              } else {
-                setFromDate(dates[0]);
-                setToDate(dates[1]);
-              }
-            }}
-          />
-        </Col>
+    <Card variant="outlined" style={{ margin: 20 }} title={<span style={{ fontSize: 26, fontWeight: 600 }}>Báo cáo top món ăn bán trong ngày</span>}>
+      <PageFilterBar
+        filters={
+          <>
+            {/* ================= LỌC KHOẢNG NGÀY ================= */}
+            <RangePicker
+              value={fromDate && toDate ? [dayjs(fromDate), dayjs(toDate)] : null}
+              onChange={(dates) => {
+                if (!dates) {
+                  setFromDate(null);
+                  setToDate(null);
+                } else {
+                  setFromDate(dates[0]);
+                  setToDate(dates[1]);
+                }
+              }}
+              style={{ width: 260 }}
+            />
 
-        <Col span={4}>
-          <Select
-            style={{ width: "100%" }}
-            value={limit}
-            onChange={setLimit}
-            options={[
-              { value: 5, label: "Top 5" },
-              { value: 10, label: "Top 10" },
-              { value: 20, label: "Top 20" },
-            ]}
-          />
-        </Col>
+            {/* ================= LỌC TOP ================= */}
+            <Select
+              value={limit}
+              onChange={setLimit}
+              style={{ width: 140 }}
+              options={[
+                { value: 5, label: "Top 5" },
+                { value: 10, label: "Top 10" },
+                { value: 20, label: "Top 20" },
+              ]}
+            />
 
-        <Col span={4}>
-          <Button icon={<ReloadOutlined />} style={{ width: "100%" }} onClick={loadData}>
-            Lọc
-          </Button>
-        </Col>
+            {/* ================= NÚT LỌC ================= */}
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadData}
+              loading={loading}
+            >
+              Lọc
+            </Button>
 
-        <Col span={4}>
-          <Button icon={<ClearOutlined />} style={{ width: "100%" }} onClick={clearFilter}>
-            Xóa lọc
-          </Button>
-        </Col>
-
-        {/* Nhóm nút Export nằm bên phải */}
-        <Col span={8} style={{ textAlign: "right" }}>
-          <Space>
+            {/* ================= XÓA LỌC – RULE 30 ================= */}
+            <Button
+              icon={<ClearOutlined />}
+              onClick={clearFilter}
+              disabled={loading}
+            >
+              Xóa lọc
+            </Button>
+          </>
+        }
+        actions={
+          <>
+            {/* ================= EXPORT EXCEL ================= */}
             <Button
               icon={<FileExcelOutlined />}
               onClick={handleExportExcel}
@@ -161,6 +170,8 @@ export default function TopDishReportPage() {
             >
               Xuất Excel
             </Button>
+
+            {/* ================= EXPORT PDF ================= */}
             <Button
               icon={<FilePdfOutlined />}
               onClick={handleExportPdf}
@@ -168,9 +179,9 @@ export default function TopDishReportPage() {
             >
               Xuất PDF
             </Button>
-          </Space>
-        </Col>
-      </Row>
+          </>
+        }
+      />
 
       <Table
         rowKey="dishId"

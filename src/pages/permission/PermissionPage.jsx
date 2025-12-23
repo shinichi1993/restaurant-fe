@@ -6,12 +6,16 @@
 // --------------------------------------------------------------
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, Table, Tag, message } from "antd";
+import { Card, Table, Tag, Input, Button } from "antd";
+import { SearchOutlined, ClearOutlined } from "@ant-design/icons";
 import { getPermissions } from "../../api/permissionApi";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 export default function PermissionPage() {
   const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(false);
+  // State tìm kiếm (Rule 30)
+  const [search, setSearch] = useState("");
 
   const loadPermissions = async () => {
     try {
@@ -30,10 +34,24 @@ export default function PermissionPage() {
     loadPermissions();
   }, []);
 
+  // Xóa hàm lọc permision
+  const clearFilter = () => {
+    setSearch("");
+  };
+
   // Thêm cột group (prefix của code) cho dễ nhìn
   const dataWithGroup = useMemo(
-    () =>
-      (permissions || []).map((p) => {
+      () =>
+    (permissions || [])
+      .filter((p) => {
+        if (!search) return true;
+        const keyword = search.toLowerCase();
+        return (
+          p.code?.toLowerCase().includes(keyword) ||
+          p.name?.toLowerCase().includes(keyword)
+        );
+      })
+      .map((p) => {
         const code = p.code || "";
         const [prefix] = code.split("_");
         return {
@@ -41,7 +59,7 @@ export default function PermissionPage() {
           group: prefix || "OTHER",
         };
       }),
-    [permissions]
+    [permissions, search]
   );
 
   const columns = [
@@ -67,10 +85,33 @@ export default function PermissionPage() {
 
   return (
     <Card
-      title="Danh sách quyền (Permission)"
+      title={<span style={{ fontSize: 26, fontWeight: 600 }}>Danh sách quyền</span>}
       variant="outlined"
       style={{ margin: 20 }}
     >
+      <PageFilterBar
+        filters={
+          <>
+            {/* ================= TÌM THEO CODE / TÊN ================= */}
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder="Tìm theo mã hoặc tên quyền"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 260 }}
+            />
+
+            {/* ================= XÓA LỌC – RULE 30 ================= */}
+            <Button
+              icon={<ClearOutlined />}
+              onClick={clearFilter}
+            >
+              Xóa lọc
+            </Button>
+          </>
+        }
+      />
+
       <Table
         rowKey="id"
         dataSource={dataWithGroup}

@@ -41,6 +41,7 @@ import {
 import { getIngredients } from "../../api/ingredientApi";
 import StockEntryFormModal from "../../components/stock/StockEntryFormModal";
 import AdjustStockModal from "../../components/stock/AdjustStockModal";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 const { RangePicker } = DatePicker;
 
@@ -174,86 +175,84 @@ export default function StockEntryPage() {
   ];
 
   return (
-    <Card variant="outlined" style={{ margin: 20 }}>
-        {/* HÀNG 1 – BỘ LỌC */}
-        <Row gutter={16} style={{ marginBottom: 16 }}>
-
-            {/* Bộ lọc ngày */}
-            <Col span={8}>
+    <Card 
+      variant="outlined" 
+      style={{ margin: 20 }}
+      title={<span style={{ fontSize: 26, fontWeight: 600 }}>Quản lý kho</span>}
+      >
+        {/* =========================================================
+          FILTER BAR – DÙNG TEMPLATE CHUNG
+          Bên trái: lọc ngày + nguyên liệu + lọc + xóa lọc
+          Bên phải: nhập kho + điều chỉnh kho
+      ========================================================= */}
+      <PageFilterBar
+        filters={
+          <>
+            {/* ================= LỌC THEO KHOẢNG NGÀY ================= */}
             <RangePicker
-                style={{ width: "100%" }}
-                value={
+              style={{ width: 260 }}
+              value={
                 fromDate && toDate ? [dayjs(fromDate), dayjs(toDate)] : null
-                }
-                onChange={(dates) => {
+              }
+              onChange={(dates) => {
                 if (!dates) {
-                    setFromDate(null);
-                    setToDate(null);
+                  setFromDate(null);
+                  setToDate(null);
                 } else {
-                    setFromDate(dates[0]);
-                    setToDate(dates[1]);
+                  setFromDate(dates[0]);
+                  setToDate(dates[1]);
                 }
-                }}
+              }}
             />
-            </Col>
 
-            {/* Lọc theo nguyên liệu */}
-            <Col span={6}>
+            {/* ================= LỌC THEO NGUYÊN LIỆU ================= */}
             <Select
-                placeholder="Lọc theo nguyên liệu"
-                allowClear
-                style={{ width: "100%" }}
-                value={ingredientId}
-                onChange={(v) => setIngredientId(v)}
-                options={ingredientOptions}
+              placeholder="Lọc theo nguyên liệu"
+              allowClear
+              style={{ width: 240 }}
+              value={ingredientId}
+              onChange={(v) => setIngredientId(v)}
+              options={ingredientOptions}
             />
-            </Col>
 
-            {/* Nút Lọc */}
-            <Col span={4}>
+            {/* ================= NÚT LỌC ================= */}
             <Button
-                icon={<ReloadOutlined />}
-                style={{ width: "100%" }}
-                onClick={handleFilter}
+              icon={<ReloadOutlined />}
+              onClick={handleFilter}
             >
-                Lọc
+              Lọc
             </Button>
-            </Col>
 
-            {/* Nút Xóa lọc */}
-            <Col span={4}>
+            {/* ================= XÓA LỌC (RULE 30) ================= */}
             <Button
-                icon={<ClearOutlined />}
-                style={{ width: "100%" }}
-                onClick={clearFilter}
+              icon={<ClearOutlined />}
+              onClick={clearFilter}
             >
-                Xóa lọc
+              Xóa lọc
             </Button>
-            </Col>
-        </Row>
+          </>
+        }
+        actions={
+          <>
+            {/* ================= NHẬP KHO ================= */}
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setOpenAdd(true)}
+            >
+              Nhập kho
+            </Button>
 
-        {/* HÀNG 2 – HÀNH ĐỘNG */}
-        <Row style={{ marginBottom: 16 }}>
-            <Col span={24}>
-            <Space style={{ width: "100%", justifyContent: "end" }}>
-                <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setOpenAdd(true)}
-                >
-                Nhập kho
-                </Button>
-
-                <Button
-                type="default"
-                icon={<EditOutlined />}
-                onClick={() => setOpenAdjust(true)}
-                >
-                Điều chỉnh kho
-                </Button>
-            </Space>
-            </Col>
-        </Row>
+            {/* ================= ĐIỀU CHỈNH KHO ================= */}
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => setOpenAdjust(true)}
+            >
+              Điều chỉnh kho
+            </Button>
+          </>
+        }
+      />
 
         {/* TABLE */}
         <Table

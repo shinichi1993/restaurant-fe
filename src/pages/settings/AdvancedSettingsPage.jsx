@@ -275,7 +275,7 @@ const AdvancedSettingsPage = () => {
     >
       <Space direction="vertical" size="middle" style={{ width: "100%" }}>
         <div>
-          <Title level={4}>Cấu hình hệ thống nâng cao</Title>
+          <Title level={6}>Cấu hình hệ thống nâng cao</Title>
           <Text type="secondary">
             Tại đây bạn có thể thay đổi các tham số hoạt động của hệ thống
             (tên nhà hàng, VAT, Loyalty, POS, giảm giá, báo cáo...). Mỗi tab

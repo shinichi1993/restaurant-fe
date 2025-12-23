@@ -44,6 +44,7 @@ import { getRoles } from "../../api/roleApi";
 import UserFormModal from "../../components/user/UserFormModal";
 import UserDetailModal from "../../components/user/UserDetailModal";
 import UserRoleModal from "../../components/user/UserRoleModal";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 export default function UserPage() {
   const ROLE_COLORS = {
@@ -210,85 +211,88 @@ export default function UserPage() {
   ];
 
   return (
-    <Card variant="outlined" style={{ margin: 20 }}>
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm username hoặc họ tên"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </Col>
+    <Card title={<span style={{ fontSize: 26, fontWeight: 600 }}>Quản lý tài khoản</span>} variant="outlined" style={{ margin: 20 }}>
+      {/* =========================================================
+          FILTER BAR – DÙNG TEMPLATE CHUNG
+          Bên trái: tìm kiếm / lọc
+          Bên phải: hành động
+      ========================================================= */}
+      <PageFilterBar
+        filters={
+          <>
+            {/* ================= TÌM KIẾM ================= */}
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder="Tìm kiếm username hoặc họ tên"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 260 }}
+            />
 
-        <Col span={4}>
-          <Select
-            placeholder="Lọc theo vai trò"
-            style={{ width: "100%" }}
-            allowClear
-            value={role}
-            onChange={(v) => setRole(v)}
-            options={roleList.map((r) => ({
-              value: r.code,     // VD: ADMIN, MANAGER
-              label: r.name,     // VD: Quản trị hệ thống
-            }))}
-          />
-        </Col>
+            {/* ================= LỌC THEO VAI TRÒ ================= */}
+            <Select
+              placeholder="Lọc theo vai trò"
+              allowClear
+              value={role}
+              onChange={(v) => setRole(v)}
+              style={{ width: 180 }}
+              options={roleList.map((r) => ({
+                value: r.code,
+                label: r.name,
+              }))}
+            />
 
-        <Col span={4}>
-          <Select
-            placeholder="Lọc theo trạng thái"
-            style={{ width: "100%" }}
-            allowClear
-            value={status}
-            onChange={(v) => setStatus(v)}
-            options={[
-              { value: "ACTIVE", label: "Hoạt động" },
-              { value: "INACTIVE", label: "Ngừng" },
-            ]}
-          />
-        </Col>
+            {/* ================= LỌC THEO TRẠNG THÁI ================= */}
+            <Select
+              placeholder="Lọc theo trạng thái"
+              allowClear
+              value={status}
+              onChange={(v) => setStatus(v)}
+              style={{ width: 160 }}
+              options={[
+                { value: "ACTIVE", label: "Hoạt động" },
+                { value: "INACTIVE", label: "Ngừng" },
+              ]}
+            />
 
-        <Col span={4}>
-          <Space style={{ width: "100%" }}>
+            {/* ================= XÓA LỌC ================= */}
             <Button
-                icon={<ClearOutlined />}
-                type="default"
-                onClick={() => {
-                    setSearch("");
-                    setRole("");
-                    setStatus("");
-                    loadUsers();
-                }}
-                style={{ width: "100%" }}
-                >
-                Xóa lọc
+              icon={<ClearOutlined />}
+              onClick={() => {
+                setSearch("");
+                setRole("");
+                setStatus("");
+                loadUsers();
+              }}
+            >
+              Xóa lọc
             </Button>
 
+            {/* ================= LÀM MỚI ================= */}
             <Button
-                icon={<ReloadOutlined />}
-                onClick={loadUsers}
-                style={{ width: "100%" }}
-                >
-                Làm mới
+              icon={<ReloadOutlined />}
+              onClick={loadUsers}
+            >
+              Làm mới
             </Button>
-          </Space>                  
-        </Col>
-
-        <Col span={6}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            style={{ width: "100%" }}
-            onClick={() => {
-              setEditingUser(null);
-              setOpenForm(true);
-            }}
-          >
-            Thêm người dùng
-          </Button>
-        </Col>
-      </Row>
+          </>
+        }
+        actions={
+          <>
+            {/* ================= THÊM USER ================= */}
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditingUser(null);
+                setOpenForm(true);
+              }}
+            >
+              Thêm người dùng
+            </Button>
+          </>
+        }
+      />
 
       <Table
         rowKey="id"

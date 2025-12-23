@@ -17,6 +17,7 @@
 // ---------------------------------------------------------------------
 import { hasPermission } from "../../hooks/usePermission";
 import ForbiddenResult from "../../components/common/ForbiddenResult";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 import { useEffect, useState } from "react";
 import {
@@ -218,88 +219,84 @@ export default function DishPage() {
     <Card
       variant="outlined"
       style={{ margin: 20 }}
-      title="Quản lý món ăn"
+      title={<span style={{ fontSize: 26, fontWeight: 600 }}>Quản lý món ăn</span>}
     >
-      {/* Hàng filter + action */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        {/* Ô tìm kiếm theo tên món */}
-        <Col span={8}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder="Tìm theo tên món"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </Col>
+      {/* =========================================================
+          FILTER BAR – DÙNG TEMPLATE CHUNG
+          Bên trái: tìm kiếm + lọc + reset + refresh
+          Bên phải: hành động chính
+      ========================================================= */}
+      <PageFilterBar
+        filters={
+          <>
+            {/* ================= TÌM THEO TÊN MÓN ================= */}
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder="Tìm theo tên món"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 260 }}
+            />
 
-        {/* Lọc theo danh mục */}
-        <Col span={6}>
-          <Select
-            placeholder="Lọc theo danh mục"
-            style={{ width: "100%" }}
-            allowClear
-            value={categoryId || undefined}
-            onChange={(v) => setCategoryId(v || "")}
-            options={categoryOptions}
-          />
-        </Col>
+            {/* ================= LỌC THEO DANH MỤC ================= */}
+            <Select
+              placeholder="Lọc theo danh mục"
+              allowClear
+              value={categoryId || undefined}
+              onChange={(v) => setCategoryId(v || "")}
+              style={{ width: 200 }}
+              options={categoryOptions}
+            />
 
-        {/* Lọc theo trạng thái */}
-        <Col span={4}>
-          <Select
-            placeholder="Lọc trạng thái"
-            style={{ width: "100%" }}
-            allowClear
-            value={status || undefined}
-            onChange={(v) => setStatus(v || "")}
-            options={[
-              { value: "ACTIVE", label: "Đang bán" },
-              { value: "INACTIVE", label: "Ngừng" },
-            ]}
-          />
-        </Col>
+            {/* ================= LỌC THEO TRẠNG THÁI ================= */}
+            <Select
+              placeholder="Lọc trạng thái"
+              allowClear
+              value={status || undefined}
+              onChange={(v) => setStatus(v || "")}
+              style={{ width: 160 }}
+              options={[
+                { value: "ACTIVE", label: "Đang bán" },
+                { value: "INACTIVE", label: "Ngừng" },
+              ]}
+            />
 
-        {/* Nút Xóa lọc */}
-        <Col span={3}>
-          <Button
-            icon={<ClearOutlined />}
-            style={{ width: "100%" }}
-            onClick={clearFilter}
-          >
-            Xóa lọc
-          </Button>
-        </Col>
-
-        {/* Nút Làm mới */}
-        <Col span={3}>
-          <Button
-            icon={<ReloadOutlined />}
-            style={{ width: "100%" }}
-            onClick={loadDishes}
-          >
-            Làm mới
-          </Button>
-        </Col>
-      </Row>
-
-      {/* Hàng nút Thêm món */}
-      <Row style={{ marginBottom: 16 }}>
-        <Col span={24} style={{ textAlign: "right" }}>
-          {hasPermission("DISH_CREATE") && (
+            {/* ================= XÓA LỌC (RULE 30) ================= */}
             <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingDish(null);
-              setOpenForm(true);
-            }}
+              icon={<ClearOutlined />}
+              onClick={clearFilter}
             >
-            Thêm món ăn
+              Xóa lọc
             </Button>
-          )}
-        </Col>
-      </Row>
 
+            {/* ================= LÀM MỚI ================= */}
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadDishes}
+            >
+              Làm mới
+            </Button>
+          </>
+        }
+        actions={
+          <>
+            {/* ================= THÊM MÓN ================= */}
+            {hasPermission("DISH_CREATE") && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setEditingDish(null);
+                  setOpenForm(true);
+                }}
+              >
+                Thêm món ăn
+              </Button>
+            )}
+          </>
+        }
+      />
+      
       {/* Bảng danh sách món */}
       <Table
         rowKey="id"

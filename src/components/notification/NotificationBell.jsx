@@ -257,20 +257,38 @@ export default function NotificationBell() {
       open={open}
       onOpenChange={handleOpenChange}
     >
-      <Badge 
-        count={unread.length > 10 ? "10+" : unread.length} 
-        size="small" 
-        offset={[0, 5]}
-        >
-        <BellOutlined
+      {/* ⭐ CONTAINER CỐ ĐỊNH HEIGHT */}
+      <div
+        style={{
+          height: 36,
+          display: "flex",
+          alignItems: "center",
+          cursor: "pointer",
+        }}
+      >
+        <Badge
+          count={unread.length > 10 ? "10+" : unread.length}
+          overflowCount={9}
+          color="#ff4d4f"
+          offset={[0, 0]}          // ❗ BỎ OFFSET
           style={{
-            fontSize: 20,
-            color: "#1677ff",
-            cursor: "pointer",
-            marginRight: 20,
+            fontSize: 12,
+            minWidth: 18,
+            height: 18,
+            lineHeight: "18px",
+            borderRadius: 9,
           }}
-        />
-      </Badge>
+        >
+          <BellOutlined
+            style={{
+              fontSize: 20,
+              color: "#fff",        // header nền tối → icon trắng
+              lineHeight: "36px",   // ⭐ ÉP LINE HEIGHT
+              display: "block",
+            }}
+          />
+        </Badge>
+      </div>
     </Popover>
   );
 }

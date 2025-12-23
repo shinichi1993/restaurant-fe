@@ -1,100 +1,149 @@
-// @ts-nocheck
-// ======================================================================
-// AdminLayout.jsx – Layout chính của hệ thống (Chuẩn Rule 14 & 27)
-// ----------------------------------------------------------------------
-// Bao gồm:
-//  - Sidebar trái (AppSidebar)
-//  - Header (AppHeader + NotificationBell)
-//  - Footer (AppFooter)
-//  - Content (Outlet)
-// 
-// QUY TẮC:
-//  - AdminLayout chỉ được bọc **1 lần duy nhất** trong AppRoutes (Rule 14)
-//  - KHÔNG chứa logic business, polling, API gọi trực tiếp
-//  - Toàn bộ xử lý thông báo (notification) đặt trong NotificationBell.jsx
-//  - UI chuẩn theo Rule 27: bố cục, màu sắc, padding, margin
-//
-// ======================================================================
+// AdminLayout.jsx – Layout chính (Header full width + Sidebar + Content + Footer)
+// -----------------------------------------------------------------------------
+// Layout chuẩn admin:
+//   - Header full ngang (brand + notification + user)
+//   - Sidebar nằm dưới header
+//   - Content ở giữa
+//   - Footer ở dưới content
+// -----------------------------------------------------------------------------
+
+import { Layout } from "antd";
+import { Outlet } from "react-router-dom";
+
+import { Button, Tooltip, Modal } from "antd";
+import { ArrowLeftOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 import AppSidebar from "../components/layout/AppSidebar";
 import AppHeader from "../components/layout/AppHeader";
 import AppFooter from "../components/layout/AppFooter";
-
 import NotificationBell from "../components/notification/NotificationBell";
 
-import { Outlet } from "react-router-dom";
-import { Layout } from "antd";
-
-const { Sider, Header, Content, Footer } = Layout;
+const { Header, Sider, Content, Footer } = Layout;
 
 export default function AdminLayout() {
+  const navigate = useNavigate();
+
+  // Modal hiển thị khi bấm nút Quay lại chọn chế độ
+  const handleBackToMode = () => {
+    Modal.confirm({
+      title: "Đổi chế độ làm việc?",
+      content: "Các thao tác đang mở (chưa lưu) sẽ bị mất.",
+      okText: "Đổi chế độ",
+      cancelText: "Hủy",
+      okType: "danger",
+      onOk: () => {
+        navigate("/mode");
+      },
+    });
+  };
+
+  // TẠO STYLE CHUNG CHO ACTION ITEM thẳng hàng với nhau
+  const actionItemStyle = {
+    height: 36,
+    display: "flex",
+    alignItems: "center",
+  };
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      
-      {/* ===========================================================
-          SIDEBAR TRÁI – MENU chính
-          Tuân theo Rule 27: Layout đẹp – khoảng cách chuẩn
-      ============================================================ */}
-      <Sider collapsible breakpoint="lg">
-        <AppSidebar />
-      </Sider>
 
-      {/* ===========================================================
-          KHU VỰC CHÍNH (Header + Content + Footer)
-      ============================================================ */}
+      {/* ================= HEADER FULL WIDTH ================= */}
+      <Header
+        style={{
+          height: 64,
+          padding: "0 24px",
+          background: "#0f172a", // header đậm
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          color: "#fff",
+          position: "sticky",
+          top: 0,
+          zIndex: 1000,
+        }}
+      >
+        {/* BÊN TRÁI: BRAND */}
+        <div style={{ fontSize: 18, fontWeight: 600 }}>
+          Restaurant Admin
+        </div>
+
+        {/* BÊN PHẢI: ACTION */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+
+          {/* ĐỔI CHẾ ĐỘ */}
+          <div style={actionItemStyle}>
+            <Tooltip title="Đổi chế độ làm việc">
+              <Button
+                type="default"
+                icon={<ArrowLeftOutlined />}
+                onClick={handleBackToMode}
+                style={{
+                  height: 36,
+                  color: "#fff",
+                  borderColor: "rgba(255,255,255,0.4)",
+                  background: "transparent",
+                }}
+              >
+                Đổi chế độ
+              </Button>
+            </Tooltip>
+          </div>
+
+          {/* NOTIFICATION */}
+          <div style={actionItemStyle}>
+            <NotificationBell />
+          </div>
+
+          {/* USER */}
+          <div style={actionItemStyle}>
+            <AppHeader />
+          </div>
+
+        </div>
+
+      </Header>
+
+      {/* ================= BODY ================= */}
       <Layout>
 
-        {/* -----------------------------------------------------------
-            HEADER – chứa AppHeader và Chuông Notification
-            - AppHeader (avatar, tên người dùng...)
-            - NotificationBell (chuông thông báo Module 14)
-            Lưu ý: padding=0 theo Rule 27 để UI đồng nhất
-        ------------------------------------------------------------ */}
-        <Header
+        {/* SIDEBAR */}
+        <Sider
+          width={220}
           style={{
-            padding: 0,
-            background: "#fff",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            background: "#020617", // sidebar đậm hơn header
           }}
         >
-          {/* Bên trái: thông tin user + menu hệ thống */}
-          <AppHeader />
+          <AppSidebar />
+        </Sider>
 
-          {/* Bên phải: chuông thông báo realtime */}
-          <NotificationBell />
-        </Header>
+        {/* CONTENT + FOOTER */}
+        <Layout>
 
-        {/* -----------------------------------------------------------
-            CONTENT – hiển thị nội dung từng trang
-            Tuân theo Rule 27:
-              - margin 16px
-              - padding 16px
-              - nền trắng
-              - borderRadius 8px
-              - tính chiều cao tự động (minHeight)
-        ------------------------------------------------------------ */}
-        <Content
-          style={{
-            margin: "16px",
-            padding: 16,
-            background: "#fff",
-            borderRadius: 8,
-            minHeight: "calc(100vh - 64px - 64px)",
-          }}
-        >
-          {/* Router outlet – FE load page con */}
-          <Outlet />
-        </Content>
+          <Content
+            style={{
+              margin: 16,
+              padding: 16,
+              background: "#fff",
+              borderRadius: 8,
+              minHeight: "calc(100vh - 64px - 64px - 32px)",
+              // header 64 + footer 64 + margin
+            }}
+          >
+            <Outlet />
+          </Content>
 
-        {/* -----------------------------------------------------------
-            FOOTER – text cuối trang
-        ------------------------------------------------------------ */}
-        <Footer style={{ background: "#fff" }}>
-          <AppFooter />
-        </Footer>
+          <Footer
+            style={{
+              textAlign: "center",
+              background: "#fff",
+              borderTop: "1px solid #f0f0f0",
+            }}
+          >
+            <AppFooter />
+          </Footer>
 
+        </Layout>
       </Layout>
     </Layout>
   );

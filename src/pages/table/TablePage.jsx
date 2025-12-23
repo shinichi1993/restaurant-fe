@@ -43,6 +43,7 @@ import {
 import TableCard from "../../components/table/TableCard"; // ⬅️ NEW
 import TableActionModal from "../../components/table/TableActionModal"; // ⬅️ NEW
 import { useNavigate } from "react-router-dom";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 export default function TablePage() {
   // =====================================================================
@@ -211,57 +212,67 @@ export default function TablePage() {
   return (
     <>
       <Card
-        title="Quản lý Bàn"
+        title={<span style={{ fontSize: 26, fontWeight: 600 }}>Quản lý bàn ăn</span>}
         variant="outlined"
         style={{ margin: 20 }}
-        extra={
-          <Space>
-            <Button icon={<ReloadOutlined />} onClick={loadTables}>
-              Tải lại
-            </Button>
-
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate}>
-              Thêm bàn
-            </Button>
-          </Space>
-        }
       >
-        {/* FILTER BAR */}
-        <Row gutter={16} style={{ marginBottom: 16 }}>
-          <Col span={8}>
-            <Input
-              placeholder="Tìm tên bàn..."
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
-            />
-          </Col>
+        {/* =========================================================
+            FILTER BAR – ORDER
+        ========================================================= */}
+        <PageFilterBar
+          filters={
+            <>
+              {/* ================= TÌM TÊN BÀN ================= */}
+              <Input
+                placeholder="Tìm tên bàn..."
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                style={{ width: 220 }}
+              />
 
-          <Col span={6}>
-            <Select
-              placeholder="Lọc trạng thái"
-              allowClear
-              style={{ width: "100%" }}
-              value={filterStatus || undefined}
-              onChange={(v) => setFilterStatus(v || "")}
-              options={[
-                { value: "AVAILABLE", label: "Trống" },
-                { value: "OCCUPIED", label: "Đang phục vụ" },
-                { value: "RESERVED", label: "Đã đặt trước" },
-                { value: "MERGED", label: "Đã gộp" },
-              ]}
-            />
-          </Col>
+              {/* ================= LỌC TRẠNG THÁI ================= */}
+              <Select
+                placeholder="Lọc trạng thái"
+                allowClear
+                value={filterStatus || undefined}
+                onChange={(v) => setFilterStatus(v || "")}
+                style={{ width: 200 }}
+                options={[
+                  { value: "AVAILABLE", label: "Trống" },
+                  { value: "OCCUPIED", label: "Đang phục vụ" },
+                  { value: "RESERVED", label: "Đã đặt trước" },
+                  { value: "MERGED", label: "Đã gộp" },
+                ]}
+              />
 
-          <Col span={4}>
-            <Button
-              icon={<ClearOutlined />}
-              onClick={handleClearFilter}
-              style={{ width: "100%" }}
-            >
-              Xóa lọc
-            </Button>
-          </Col>
-        </Row>
+              {/* ================= XÓA LỌC – RULE 30 ================= */}
+              <Button
+                icon={<ClearOutlined />}
+                onClick={handleClearFilter}
+              >
+                Xóa lọc
+              </Button>
+            </>
+          }
+          actions={
+            <>
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={loadTables}
+              >
+                Tải lại
+              </Button>
+
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleOpenCreate}
+              >
+                Thêm bàn
+              </Button>
+            </>
+          }
+        />
 
         {/* GRID BÀN */}
         <Row gutter={[16, 16]}>

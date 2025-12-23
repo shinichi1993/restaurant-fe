@@ -31,11 +31,13 @@ import {
   message,
 } from "antd";
 import { DatePicker, Modal } from "antd";
+import { ClearOutlined } from "@ant-design/icons";
 
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 
 import { searchAuditLogs, getAuditActions } from "../../api/auditApi";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 dayjs.locale("vi"); // hiển thị datetime theo locale tiếng Việt (nếu cần)
 
@@ -185,99 +187,87 @@ export default function AuditLogPage() {
   // ==================================================================
   return (
     <Card
-      title="Lịch sử Audit Log"
+      title={<span style={{ fontSize: 26, fontWeight: 600 }}>Lịch sử audit log</span>}
       variant="borderless"      // chuẩn Rule 27,  variant="borderless" thì là Rule 29: dùng variant
       style={{ margin: 20 }} // cách lề với layout chính
     >
       {/* ===========================================================
           HÀNG FILTER (ENTITY, USER ID, ACTION, TÌM KIẾM, XÓA LỌC)
       ============================================================ */}
-      <Row gutter={12} style={{ marginBottom: 16 }}>
-        {/* Entity filter */}
-        <Col span={6}>
-          <Input
-            placeholder="Entity (vd: user, order...)"
-            value={entity}
-            onChange={(e) => setEntity(e.target.value)}
-          />
-        </Col>
+      <PageFilterBar
+        filters={
+          <>
+            {/* ================= ENTITY ================= */}
+            <Input
+              placeholder="Entity (vd: user, order...)"
+              value={entity}
+              onChange={(e) => setEntity(e.target.value)}
+              style={{ width: 200 }}
+            />
 
-        {/* UserName filter */}
-        <Col span={6}>
-          <Input
-            placeholder="User name..."
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </Col>
+            {/* ================= USERNAME ================= */}
+            <Input
+              placeholder="User name..."
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              style={{ width: 180 }}
+            />
 
-        {/* Filter theo khoảng thời gian */}
-        <Col span={6}>
-          <DatePicker.RangePicker
-            style={{ width: "100%" }}
-            showTime
-            format="DD/MM/YYYY HH:mm" // Rule 26
-            value={dateRange}
-            onChange={setDateRange}
-            placeholder={["Từ ngày", "Đến ngày"]}
-          />
-        </Col>
+            {/* ================= DATE RANGE ================= */}
+            <DatePicker.RangePicker
+              showTime
+              format="DD/MM/YYYY HH:mm"
+              value={dateRange}
+              onChange={setDateRange}
+              style={{ width: 300 }}
+              placeholder={["Từ ngày", "Đến ngày"]}
+            />
 
-        {/* Action filter (dropdown lấy từ BE) */}
-        <Col span={6}>
-          <Select
-            placeholder="Action"
-            mode="multiple"
-            allowClear           // cho phép clear để bỏ filter
-            value={action || undefined}
-            onChange={setAction}
-            style={{ width: "100%" }}
-          >
-            {actions.map((a) => (
-              <Select.Option key={a} value={a}>
-                {a}
-              </Select.Option>
-            ))}
-          </Select>
-        </Col>
-
-        {/* Nút Tìm kiếm */}
-        <Col span={3}>
-          <Button
-            type="primary"
-            block
-            onClick={() => {
-              // Reset về trang 0 rồi gọi loadData với filter hiện tại
-              setPage(0);
-              setReloadKey((k) => k + 1); // trigger search
-            }}
-          >
-            Tìm kiếm
-          </Button>
-        </Col>
-
-        {/* Nút Xóa lọc – bắt buộc theo Rule mới */}
-        <Col span={3}>
-          <Button
-            block
-            onClick={() => {
-              // Reset toàn bộ filter về mặc định
-              setEntity("");
-              setUsername("");
-              setAction([]);       // FIX BUG
-              setDateRange(null);  // Reset filter ngày
-
-              // Reset về trang đầu
-              setPage(0);
-
-              // Trigger reload danh sách không filter
-              setReloadKey((k) => k + 1);
-            }}
+            {/* ================= ACTION ================= */}
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder="Action"
+              value={action}
+              onChange={setAction}
+              style={{ width: 220 }}
+              options={actions.map((a) => ({
+                value: a,
+                label: a,
+              }))}
+            />
+          </>
+        }
+        actions={
+          <>
+            {/* ================= TÌM KIẾM ================= */}
+            <Button
+              type="primary"
+              onClick={() => {
+                setPage(0);
+                setReloadKey((k) => k + 1);
+              }}
             >
-            Xóa lọc
-          </Button>
-        </Col>
-      </Row>
+              Tìm kiếm
+            </Button>
+
+            {/* ================= XÓA LỌC – RULE 30 ================= */}
+            <Button
+              icon={<ClearOutlined />}
+              onClick={() => {
+                setEntity("");
+                setUsername("");
+                setAction([]);
+                setDateRange(null);
+                setPage(0);
+                setReloadKey((k) => k + 1);
+              }}
+            >
+              Xóa lọc
+            </Button>
+          </>
+        }
+      />
 
       {/* ===========================================================
           BẢNG HIỂN THỊ LỊCH SỬ AUDIT

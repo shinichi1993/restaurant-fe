@@ -54,6 +54,7 @@ import OrderDetailModal from "../../components/order/OrderDetailModal";
 import PaymentModal from "../../components/payment/PaymentModal";
 import { fetchAllSettings } from "../../api/settingApi"; // ✅ Thêm dòng này
 import { APP_MODE } from "../../constants/appMode";
+import PageFilterBar from "../../components/common/PageFilterBar";
 
 export default function OrderPage() {
     // ------------------------------------------------------------
@@ -314,7 +315,7 @@ export default function OrderPage() {
   // RENDER UI
   // --------------------------------------------------------------
   return (
-    <Card variant="outlined" style={{ margin: 20 }}>
+    <Card variant="outlined" style={{ margin: 20 }} title={<span style={{ fontSize: 26, fontWeight: 600 }}>Quản lý đặt món</span>}>
       <Tabs
           activeKey={activeTab}
           onChange={(key) => {
@@ -330,63 +331,62 @@ export default function OrderPage() {
             { key: "PAID", label: "Đã thanh toán" },
           ]}
       />
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        {/* Tìm kiếm mã order */}
-        <Col span={6}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder="Tìm mã Order..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </Col>
+      {/* =========================================================
+          FILTER BAR – ORDER
+      ========================================================= */}
+      <PageFilterBar
+        filters={
+          <>
+            {/* ================= TÌM THEO MÃ ORDER ================= */}
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder="Tìm mã Order..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 240 }}
+            />
 
-        {/* Filter trạng thái */}
-        <Col span={4}>
-          <Select
-            placeholder="Lọc trạng thái"
-            allowClear
-            style={{ width: "100%" }}
-            value={status}
-            onChange={(v) => setStatus(v)}
-            options={
-              activeTab === "UNPAID"
-                ? [
-                    { value: "NEW", label: "Mới" },
-                    { value: "SERVING", label: "Đang phục vụ" },
-                  ]
-                : [
-                    { value: "PAID", label: "Đã thanh toán" },
-                  ]
-            }
-          />
-        </Col>
+            {/* ================= LỌC TRẠNG THÁI ================= */}
+            <Select
+              placeholder="Lọc trạng thái"
+              allowClear
+              value={status || undefined}
+              onChange={(v) => setStatus(v || "")}
+              style={{ width: 200 }}
+              options={
+                activeTab === "UNPAID"
+                  ? [
+                      { value: "NEW", label: "Mới" },
+                      { value: "SERVING", label: "Đang phục vụ" },
+                    ]
+                  : [{ value: "PAID", label: "Đã thanh toán" }]
+              }
+            />
 
-        {/* Xóa lọc (Rule 30) */}
-        <Col span={4}>
-          <Button
-            icon={<ClearOutlined />}
-            style={{ width: "100%" }}
-            onClick={clearFilter}
-          >
-            Xóa lọc
-          </Button>
-        </Col>
-
-        {/* Tạo order mới - Nếu mobile sẽ k hiện */}
-        {!isMobile && (
-          <Col span={6}>
+            {/* ================= XÓA LỌC (RULE 30) ================= */}
             <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              style={{ width: "100%" }}
-              onClick={() => navigate("/orders/create")}
+              icon={<ClearOutlined />}
+              onClick={clearFilter}
             >
-              Tạo order mới
+              Xóa lọc
             </Button>
-          </Col>
-        )}
-      </Row>
+          </>
+        }
+        actions={
+          <>
+            {/* ================= TẠO ORDER MỚI (DESKTOP) ================= */}
+            {!isMobile && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => navigate("/orders/create")}
+              >
+                Tạo order mới
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* ==========================================================
           DESKTOP – TABLE (GIỮ NGUYÊN HÀNH VI CŨ)
