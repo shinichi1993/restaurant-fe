@@ -34,7 +34,7 @@ import {
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { createPayment, calcPayment } from "../../api/paymentApi";
+import { createPayment, calcPayment, createMomoPayment, } from "../../api/paymentApi";
 import { getInvoiceByOrderId } from "../../api/invoiceApi";
 
 import { getMemberById, getActiveMemberByPhone } from "../../api/memberApi";
@@ -48,7 +48,9 @@ const { Text } = Typography;
 // ----------------------------------------------------------------------
 // Mục tiêu:
 //  - OFFLINE: dùng được ngay (CASH, BANK_MANUAL)
-//  - ONLINE: hiển thị nhưng DISABLE (MOMO, CREDIT...)
+//  - ONLINE:
+//      + MoMo: QR / App (Sandbox)
+//      + CREDIT: chưa hỗ trợ
 //  - Chuẩn bị sẵn kiến trúc, KHÔNG gọi cổng thanh toán
 // ======================================================================
 
@@ -60,12 +62,9 @@ const OFFLINE_METHODS = [
 
 // Phương thức ONLINE (chưa tích hợp – chỉ hiển thị)
 const ONLINE_METHODS = [
-  { value: "MOMO", label: "MoMo (sắp có)", disabled: true },
+  { value: "MOMO", label: "MoMo" },
   { value: "CREDIT", label: "Thẻ / POS (sắp có)", disabled: true },
 ];
-
-// Set để check nhanh ONLINE method
-const ONLINE_METHOD_SET = new Set(["MOMO", "CREDIT"]);
 
 export default function PaymentModal({
   open,
@@ -137,6 +136,17 @@ export default function PaymentModal({
   // ==========================================================
   const calcRequestIdRef = useRef(0);
 
+  // ===============================
+  // STATE DÙNG RIÊNG CHO MOMO
+  // ===============================
+
+  // Dữ liệu trả về từ BE khi tạo MoMo payment
+  // { paymentId, momoOrderId, payUrl, qrCodeUrl }
+  const [momoData, setMomoData] = useState(null);
+
+  // Flag để hiển thị khu vực QR MoMo
+  const [showMomoQR, setShowMomoQR] = useState(false);
+
   // ==========================================================
   // KHI MỞ PAYMENT MODAL
   // - Reset state
@@ -148,7 +158,6 @@ export default function PaymentModal({
 
     // Set form mặc định
     form.setFieldsValue({
-      method: "CASH",
       note: `Thanh toán cho order ${order.orderCode}`,
     });
 
@@ -156,6 +165,8 @@ export default function PaymentModal({
     setVoucherCode("");
     setRedeemPoint(0);
     setCalcResult(null);
+    setMomoData(null);
+    setShowMomoQR(false);
 
     // Nếu order đã có member → load
     if (order.memberId) {
@@ -170,6 +181,8 @@ export default function PaymentModal({
       form.resetFields();
       setCalcResult(null);
       setRedeemPoint(0);
+      setMomoData(null);
+      setShowMomoQR(false);
     };
   }, [open, order]);
 
@@ -259,6 +272,7 @@ export default function PaymentModal({
   // XỬ LÝ SUBMIT THANH TOÁN
   // ==========================================================
   const handleSubmit = async (values) => {
+    console.log("SUBMIT VALUES =", values);
     if (!order) return;
 
     // ==========================================================
@@ -267,10 +281,23 @@ export default function PaymentModal({
     // Nếu user chọn phương thức ONLINE
     // → chặn submit, chưa cho thanh toán
     // ==========================================================
+    /*
     if (ONLINE_METHOD_SET.has(values.method)) {
       message.info(
         "Thanh toán online (MoMo / Thẻ) sẽ được hỗ trợ trong phiên bản sau."
       );
+      return;
+    }
+    */
+
+    // ==========================================================
+    // THANH TOÁN ONLINE – MOMO
+    // ----------------------------------------------------------
+    // Nếu chọn MoMo → KHÔNG gọi createPayment
+    // → Gọi API tạo MoMo + hiển thị QR
+    // ==========================================================
+    if (values.method === "MOMO") {
+      await handleMomoPayment();
       return;
     }
 
@@ -388,6 +415,42 @@ export default function PaymentModal({
       /*message.error(
         err?.response?.data?.message || "Thanh toán thất bại. Vui lòng thử lại"
       );*/
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ==========================================================
+  // XỬ LÝ THANH TOÁN MOMO
+  // ==========================================================
+  const handleMomoPayment = async () => {
+    if (!order || !calcResult) return;
+
+    try {
+      setSubmitting(true);
+
+      // Payload gửi BE tạo giao dịch MoMo
+      const payload = {
+        orderId: order.id,
+        amount: calcResult.finalAmount,
+        note: form.getFieldValue("note") || null,
+      };
+
+      if (selectedMember?.id) payload.memberId = selectedMember.id;
+      if (redeemPoint > 0) payload.redeemPoint = redeemPoint;
+      if (calcResult.appliedVoucherCode) {
+        payload.voucherCode = calcResult.appliedVoucherCode;
+      }
+
+      // Gọi API tạo MoMo payment
+      const res = await createMomoPayment(payload);
+
+      // Lưu dữ liệu MoMo để hiển thị QR
+      setMomoData(res);
+      setShowMomoQR(true);
+    } catch (err) {
+      console.error(err);
+      message.error("Không thể tạo thanh toán MoMo");
     } finally {
       setSubmitting(false);
     }
@@ -683,6 +746,49 @@ export default function PaymentModal({
         )}
       </div>
 
+      {/* Hiển thị QR Momo */}
+      {showMomoQR && momoData && (
+        <Card style={{ marginBottom: 16 }}>
+          <Text strong>Quét mã QR MoMo để thanh toán</Text>
+
+          {momoData.qrCodeUrl && (
+            <div style={{ textAlign: "center", marginTop: 12 }}>
+              <img
+                src={momoData.qrCodeUrl}
+                alt="MoMo QR"
+                style={{ width: 220 }}
+              />
+            </div>
+          )}
+
+          {momoData.payUrl && (
+            <Button
+              type="primary"
+              block
+              style={{ marginTop: 12 }}
+              onClick={() => window.open(momoData.payUrl, "_blank")}
+            >
+              Mở MoMo App
+            </Button>
+          )}
+
+          <Button
+            block
+            style={{ marginTop: 8 }}
+            onClick={async () => {
+              await reloadOrders?.();
+              if (order.status !== "PAID") {
+                message.info("Đang chờ MoMo xác nhận thanh toán...");
+                return;
+              }
+              onClose();
+            }}
+          >
+            Đã thanh toán xong
+          </Button>
+        </Card>
+      )}
+
       {/* Form chọn phương thức thanh toán */}
       <Form 
         layout="vertical" 
@@ -705,28 +811,42 @@ export default function PaymentModal({
             />
           </Form.Item>
 
+          {/* Nếu trả bằng momo thì ẩn mục Khách trả */}
           <Form.Item
-            label="Khách trả"
-            name="customerPaid"
-            rules={[
-              { required: true, message: "Vui lòng nhập số tiền khách trả" },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  const finalAmount =
-                    calcResult?.finalAmount ?? order.totalPrice ?? 0;
+            noStyle
+            dependencies={["method"]}
+          >
+            {({ getFieldValue }) =>
+              getFieldValue("method") !== "MOMO" && (
+                <Form.Item
+                  label="Khách trả"
+                  name="customerPaid"
+                  rules={[
+                    { required: true, message: "Vui lòng nhập số tiền khách trả" },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        const finalAmount =
+                          calcResult?.finalAmount ?? order.totalPrice ?? 0;
 
-                  if (!value || Number(value) < finalAmount) {
-                    return Promise.reject(
-                      new Error("Số tiền khách trả phải ≥ tổng phải thanh toán")
-                    );
-                  }
-                  return Promise.resolve();
-                },
-              }),
-            ]}
-        >
-          <Input type="number" min={0} placeholder="Nhập số tiền khách đưa" />
-        </Form.Item>
+                        if (!value || Number(value) < finalAmount) {
+                          return Promise.reject(
+                            new Error("Số tiền khách trả phải ≥ tổng phải thanh toán")
+                          );
+                        }
+                        return Promise.resolve();
+                      },
+                    }),
+                  ]}
+                >
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="Nhập số tiền khách đưa"
+                  />
+                </Form.Item>
+              )
+            }
+          </Form.Item>
 
         {calcResult && form.getFieldValue("customerPaid") && (
           <div style={{ marginBottom: 12 }}>
@@ -753,9 +873,11 @@ export default function PaymentModal({
           htmlType="submit"
           block
           loading={submitting}
-          disabled={calculating}
+          disabled={calculating || showMomoQR}
         >
-          Xác nhận thanh toán
+          {form.getFieldValue("method") === "MOMO"
+            ? "Thanh toán MoMo"
+            : "Xác nhận thanh toán"}
         </Button>
       </Form>
     </Modal>

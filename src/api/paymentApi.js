@@ -83,3 +83,38 @@ export const calcPayment = async (data) => {
   const res = await api.post("/api/payments/calc", data);
   return res.data; // Trả thẳng data cho PaymentModal xử lý
 };
+
+// --------------------------------------------------------------------
+// 🟣 Tạo thanh toán MoMo (ONLINE PAYMENT)
+// --------------------------------------------------------------------
+// Mục đích:
+//  - FE gọi để tạo giao dịch MoMo
+//  - BE sẽ:
+//      + tạo payment status = PENDING
+//      + trả về payUrl / qrCodeUrl
+//      + chờ IPN từ MoMo để cập nhật SUCCESS
+//
+// request:
+// {
+//   orderId: number,
+//   amount: number,
+//   note?: string,
+//   memberId?: number,
+//   redeemPoint?: number,
+//   voucherCode?: string
+// }
+//
+// response (ví dụ):
+// {
+//   paymentId: 123,
+//   momoOrderId: "PAY_123",
+//   payUrl: "...",
+//   qrCodeUrl: "..."
+// }
+// --------------------------------------------------------------------
+export const createMomoPayment = async (data) => {
+  const res = await api.post("/api/payments/momo/create", data);
+  return res.data;
+};
+
+
