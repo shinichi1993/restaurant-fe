@@ -71,7 +71,7 @@ export default function PaymentModal({
   onClose,
   order,
   reloadOrders,
-  enableLoyalty,
+  enableLoyalty = true,
 
   // ==================================================================
   // EPIC 2 – Điều hướng theo Mode (ADMIN / POS / POS_SIMPLE)
