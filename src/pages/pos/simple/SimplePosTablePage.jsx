@@ -82,6 +82,30 @@ export default function SimplePosTablePage() {
     });
   };
 
+  // ==========================================================
+  // Helper: xác định UI theo trạng thái bàn
+  // ==========================================================
+  const getTableStyle = (status) => {
+    const normalized = (status || "").toUpperCase();
+
+    if (normalized === "OCCUPIED") {
+      return {
+        bg: "#fff7e6",
+        border: "#ffa940",
+        textColor: "#fa8c16",
+        label: "Đang phục vụ",
+      };
+    }
+
+    // Mặc định AVAILABLE
+    return {
+      bg: "#f6ffed",
+      border: "#b7eb8f",
+      textColor: "#389e0d",
+      label: "Đang trống",
+    };
+  };
+
   return (
     <MotionWrapper>
       <div style={{ marginBottom: 16 }}>
@@ -121,26 +145,56 @@ export default function SimplePosTablePage() {
         </div>
       ) : (
         <Row gutter={[16, 16]}>
-          {tables.map((table) => (
-            <Col key={table.id} xs={12} sm={8} md={6} lg={4}>
-              <Card
-                hoverable
-                variant="outlined"
-                style={{ textAlign: "center" }}
-                onClick={() => handleSelectTable(table)}
-              >
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                  {table.name || `Bàn ${table.id}`}
-                </div>
-                <Text type="secondary">
-                  Trạng thái:{" "}
-                  <Text strong>
-                    {table.status || "UNKNOWN"}
-                  </Text>
-                </Text>
-              </Card>
-            </Col>
-          ))}
+          {tables.map((table) => {
+            const ui = getTableStyle(table.status);
+            return(
+              <Col key={table.id} xs={12} sm={8} md={6} lg={4}>
+                <Card
+                  hoverable
+                  variant="outlined"
+                  style={{
+                    textAlign: "center",
+                    backgroundColor: ui.bg,
+                    borderColor: ui.border,
+                    borderRadius: 14,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                  onClick={() => handleSelectTable(table)}
+                  onMouseDown={(e) => {
+                    // Hiệu ứng nhấn cho mobile / tablet
+                    e.currentTarget.style.transform = "scale(0.97)";
+                  }}
+                  onMouseUp={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 16,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {table.name || `Bàn ${table.id}`}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: ui.textColor,
+                    }}
+                  >
+                    {ui.label}
+                  </div>
+                </Card>
+              </Col>
+            );
+          })}
         </Row>
       )}
     </MotionWrapper>

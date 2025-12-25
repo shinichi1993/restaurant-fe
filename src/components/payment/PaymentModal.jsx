@@ -71,6 +71,7 @@ export default function PaymentModal({
   onClose,
   order,
   reloadOrders,
+  enableLoyalty,
 
   // ==================================================================
   // EPIC 2 – Điều hướng theo Mode (ADMIN / POS / POS_SIMPLE)
@@ -115,6 +116,12 @@ export default function PaymentModal({
   //Loading tiền thừa khi nhập tiền khách thanh toán
   const [customerPaid, setCustomerPaid] = useState(0);
 
+  // Điều khiển mở / đóng dropdown phương thức thanh toán (fix iOS)
+  const [paymentMethodOpen, setPaymentMethodOpen] = useState(false);
+
+  // auto focus Số tiền khách trả
+  const customerPaidRef = useRef(null);
+
   // ===============================
   // STATE MEMBER (LOYALTY)
   // ===============================
@@ -146,6 +153,26 @@ export default function PaymentModal({
 
   // Flag để hiển thị khu vực QR MoMo
   const [showMomoQR, setShowMomoQR] = useState(false);
+
+  // Hàm chạy âm thanh khi thanh toán
+  const playPaymentSuccessSound = () => {
+    try {
+      const audio = new Audio("/sounds/payment-success.mp3");
+      audio.volume = 0.6;
+      audio.play();
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // Set focus vào Khách trả
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => {
+        customerPaidRef.current?.focus();
+      }, 150);
+    }
+  }, [open]);
 
   // ==========================================================
   // KHI MỞ PAYMENT MODAL
@@ -337,7 +364,15 @@ export default function PaymentModal({
       // Gọi API tạo payment
       await createPayment(payload);
 
+      // Gọi âm thanh thanh toán
+      playPaymentSuccessSound();
+
       message.success("Thanh toán thành công");
+
+      // 🔔 rung nhẹ cho POS tablet / mobile
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
 
       // Reload lại danh sách order (status sẽ chuyển sang PAID)
       if (reloadOrders) {
@@ -649,103 +684,106 @@ export default function PaymentModal({
       {/* =============================== */}
       {/* TÌM HỘI VIÊN */}
       {/* =============================== */}
-      <div style={{ marginBottom: 16 }}>
-        <Text strong>Số điện thoại hội viên:</Text>
-        <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
-          <Input
-            placeholder="Nhập SĐT hội viên"
-            value={memberPhone}
-            onChange={(e) => {
-              // ✅ Khi user thay đổi SĐT → reset hội viên đã chọn
-              setMemberPhone(e.target.value);
-              setSelectedMember(null);
-              setRedeemPoint(0); // ✅ reset điểm khi đổi hội viên
-            }}
-          />
-          <Button loading={searchingMember} onClick={handleSearchMember}>
-            Tìm
-          </Button>
-        </div>
-
-        {/* Nếu tìm thấy hội viên */}
-        {selectedMember && (
-          <Card
-            size="small"
-            style={{ marginTop: 10, background: "#f6ffed", borderColor: "#b7eb8f" }}
-          >
-            <Text strong>{selectedMember.name}</Text>
-            <br />
-            <Text>SĐT: {selectedMember.phone}</Text>
-            <br />
-            <Text>Tier: {selectedMember.tier}</Text>
-            <br />
-            <Text>Điểm hiện tại: {selectedMember.totalPoint}</Text>
-          </Card>
-        )}
-
-        {/* =============================== */}
-        {/* REDEEM POINT (DÙNG ĐIỂM) */}
-        {/* =============================== */}
-        {selectedMember && (
-          <div style={{ marginBottom: 16 }}>
-            <Text strong>Dùng điểm hội viên:</Text>
-
+      {enableLoyalty && (
+        <div style={{ marginBottom: 16 }}>
+          <Text strong>Số điện thoại hội viên:</Text>
+          <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
             <Input
-              type="number"
-              min={0}
-              max={selectedMember.totalPoint}
-              value={redeemPoint}
-              placeholder="Nhập số điểm muốn dùng"
+              placeholder="Nhập SĐT hội viên"
+              value={memberPhone}
               onChange={(e) => {
-                const value = Number(e.target.value || 0);
-
-                // ❌ Không cho nhập âm
-                if (value < 0) return;
-
-                // ❌ Không cho nhập quá số điểm hiện có
-                if (value > selectedMember.totalPoint) {
-                  message.warning("Số điểm vượt quá điểm hiện có của hội viên");
-                  return;
-                }
-
-                // ✅ HỢP LỆ → SET STATE
-                setRedeemPoint(value);
+                // ✅ Khi user thay đổi SĐT → reset hội viên đã chọn
+                setMemberPhone(e.target.value);
+                setSelectedMember(null);
+                setRedeemPoint(0); // ✅ reset điểm khi đổi hội viên
               }}
-              style={{ marginTop: 8 }}
             />
-
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              Điểm hiện có: {selectedMember.totalPoint}
-            </Text>
+            <Button loading={searchingMember} onClick={handleSearchMember}>
+              Tìm
+            </Button>
           </div>
-        )}
-      </div>
+
+          {/* Nếu tìm thấy hội viên */}
+          {selectedMember && (
+            <Card
+              size="small"
+              style={{ marginTop: 10, background: "#f6ffed", borderColor: "#b7eb8f" }}
+            >
+              <Text strong>{selectedMember.name}</Text>
+              <br />
+              <Text>SĐT: {selectedMember.phone}</Text>
+              <br />
+              <Text>Tier: {selectedMember.tier}</Text>
+              <br />
+              <Text>Điểm hiện tại: {selectedMember.totalPoint}</Text>
+            </Card>
+          )}
+
+          {/* =============================== */}
+          {/* REDEEM POINT (DÙNG ĐIỂM) */}
+          {/* =============================== */}
+          {selectedMember && (
+            <div style={{ marginBottom: 16 }}>
+              <Text strong>Dùng điểm hội viên:</Text>
+
+              <Input
+                type="number"
+                min={0}
+                max={selectedMember.totalPoint}
+                value={redeemPoint}
+                placeholder="Nhập số điểm muốn dùng"
+                onChange={(e) => {
+                  const value = Number(e.target.value || 0);
+
+                  // ❌ Không cho nhập âm
+                  if (value < 0) return;
+
+                  // ❌ Không cho nhập quá số điểm hiện có
+                  if (value > selectedMember.totalPoint) {
+                    message.warning("Số điểm vượt quá điểm hiện có của hội viên");
+                    return;
+                  }
+
+                  // ✅ HỢP LỆ → SET STATE
+                  setRedeemPoint(value);
+                }}
+                style={{ marginTop: 8 }}
+              />
+
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Điểm hiện có: {selectedMember.totalPoint}
+              </Text>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Khu vực nhập và áp dụng voucher */}
-      <div style={{ marginBottom: 16 }}>
-        <Text strong>Mã voucher:</Text>
-        <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
-          <Input
-            placeholder="Nhập mã voucher"
-            value={voucherCode}
-            onChange={(e) => setVoucherCode(e.target.value)}
-          />
-          <Button onClick={handleApplyVoucher} disabled={!voucherCode}>
-            Áp dụng
-          </Button>
-        </div>
-
-        {/* Thông tin voucher đang áp dụng (nếu có) */}
-        {calcResult && calcResult.appliedVoucherCode && (
-          <div style={{ marginTop: 8 }}>
-            <Text>
-              Đã áp dụng voucher{" "}
-              <Text strong>{calcResult.appliedVoucherCode}</Text>.
-            </Text>
+      {enableLoyalty && (
+        <div style={{ marginBottom: 16 }}>
+          <Text strong>Mã voucher:</Text>
+          <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+            <Input
+              placeholder="Nhập mã voucher"
+              value={voucherCode}
+              onChange={(e) => setVoucherCode(e.target.value)}
+            />
+            <Button onClick={handleApplyVoucher} disabled={!voucherCode}>
+              Áp dụng
+            </Button>
           </div>
-        )}
-      </div>
 
+          {/* Thông tin voucher đang áp dụng (nếu có) */}
+          {calcResult && calcResult.appliedVoucherCode && (
+            <div style={{ marginTop: 8 }}>
+              <Text>
+                Đã áp dụng voucher{" "}
+                <Text strong>{calcResult.appliedVoucherCode}</Text>.
+              </Text>
+            </div>
+          )}
+        </div>
+      )}
       {/* Hiển thị QR Momo */}
       {showMomoQR && momoData && (
         <Card style={{ marginBottom: 16 }}>
@@ -808,6 +846,12 @@ export default function PaymentModal({
             <Select
               placeholder="Chọn phương thức"
               options={[...OFFLINE_METHODS, ...ONLINE_METHODS]}
+              open={paymentMethodOpen}
+              onDropdownVisibleChange={setPaymentMethodOpen}
+              onChange={() => {
+                // 🔥 ÉP đóng dropdown ngay sau khi chọn (fix iOS)
+                setPaymentMethodOpen(false);
+              }}
             />
           </Form.Item>
 
@@ -820,6 +864,7 @@ export default function PaymentModal({
               getFieldValue("method") !== "MOMO" && (
                 <Form.Item
                   label="Khách trả"
+                  ref={customerPaidRef}
                   name="customerPaid"
                   rules={[
                     { required: true, message: "Vui lòng nhập số tiền khách trả" },

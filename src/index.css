@@ -16,3 +16,22 @@
 .ant-badge-count {
   transform: none !important;
 }
+
+/* ================================
+   FIX iOS AUTO ZOOM INPUT
+   ================================ */
+input,
+textarea,
+select {
+  font-size: 16px !important;
+}
+
+/* Ant Design input */
+.ant-input,
+.ant-input-number-input,
+.ant-select-selector,
+.ant-picker-input > input,
+textarea.ant-input {
+  font-size: 16px !important;
+}
+

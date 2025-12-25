@@ -41,9 +41,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import MotionWrapper from "../../../components/common/MotionWrapper";
 import { getDishes } from "../../../api/dishApi";
+import { fetchAllSettings } from "../../../api/settingApi";
 import { simpleCreateOrder } from "../../../api/simplePosApi";
 import PaymentModal from "../../../components/payment/PaymentModal";
 import { APP_MODE } from "../../../constants/appMode";
+//Detect mobile
+import { Grid, Drawer } from "antd";
+import PosOrderLayout from "../../../components/pos/PosOrderLayout";
+const { useBreakpoint } = Grid;
 
 const { Text, Title } = Typography;
 
@@ -66,6 +71,10 @@ const createLineId = (prefix = "line") =>
 export default function SimplePosOrderPage() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Cho detect mobile
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   // Lấy thông tin bàn từ state (được truyền từ SimplePosTablePage)
   const { tableId = null, tableName = "Simple POS" } = location.state || {};
@@ -97,6 +106,13 @@ export default function SimplePosOrderPage() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [currentOrder, setCurrentOrder] = useState(null);
 
+  // Drawer giỏ hàng (mobile)
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+
+  // System setting
+  const [settings, setSettings] = useState({});
+  const [loadingSettings, setLoadingSettings] = useState(false);
+
   // ---------------------------------------------------------------------------
   // 1. Load danh sách món từ BE
   // ---------------------------------------------------------------------------
@@ -116,6 +132,37 @@ export default function SimplePosOrderPage() {
 
   useEffect(() => {
     loadDishes();
+  }, []);
+
+  // load system setting
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        setLoadingSettings(true);
+        const res = await fetchAllSettings();
+        const list = res?.data ?? res ?? [];
+
+        // map setting_key -> parsed value
+        const map = {};
+        list.forEach((s) => {
+          if (!s?.settingKey) return;
+
+          let value = s.settingValue;
+          if (s.valueType === "BOOLEAN") {
+            value = value === "true";
+          }
+          map[s.settingKey] = value;
+        });
+
+        setSettings(map);
+      } catch (err) {
+        console.error("Lỗi load system settings:", err);
+      } finally {
+        setLoadingSettings(false);
+      }
+    };
+
+    loadSettings();
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -155,6 +202,9 @@ export default function SimplePosOrderPage() {
   // 4. Hàm thêm món vào giỏ
   // ---------------------------------------------------------------------------
   const handleAddDishToCart = (dish) => {
+    // 🔔 Phản hồi ngay khi thêm món (POS-style)
+    playAddToCartFeedback();
+
     setCartItems((prev) => {
       // Tìm 1 dòng cùng dishId để cộng dồn quantity
       const idx = prev.findIndex((item) => item.dishId === dish.id);
@@ -317,237 +367,72 @@ export default function SimplePosOrderPage() {
     );
   }
 
+  // ==========================================================
+  // FEEDBACK KHI THÊM MÓN (ÂM THANH + RUNG)
+  // ----------------------------------------------------------
+  // - Mobile: rung nhẹ nếu trình duyệt hỗ trợ
+  // - Desktop: phát âm thanh "ting"
+  // ==========================================================
+  const playAddToCartFeedback = () => {
+    try {
+      // 1️⃣ RUNG (HAPTIC) – Mobile (iOS / Android)
+      if (navigator.vibrate) {
+        // Rung rất nhẹ, tránh gây khó chịu
+        navigator.vibrate(30);
+      }
+
+      // 2️⃣ ÂM THANH – Desktop / Mobile
+      const audio = new Audio("/sounds/Bubble-Poof-Pop.mp3");
+      audio.volume = 0.4;
+      audio.play().catch(() => {
+        // Một số trình duyệt chặn auto-play → bỏ qua
+      });
+    } catch (e) {
+      // Không làm crash UI nếu thiết bị không hỗ trợ
+    }
+  };
+
+  // Thay đổi số lượng sản phẩm order
+  const handleChangeSimpleQty = (item, newQty) => {
+    if (newQty <= 0) {
+      handleRemoveCartItem(item.lineId);
+      return;
+    }
+    handleChangeQuantity(item.lineId, newQty);
+  };
+
+  // biến lấy setting member in payment
+  const enableMemberInPayment =
+    settings["loyalty.member_in_payment_enabled"] !== false;
+
   return (
-    <MotionWrapper>
-      <Row gutter={[16, 16]}>
-        {/* =====================================================================
-            CỘT TRÁI – DANH SÁCH MÓN
-        ===================================================================== */}
-        <Col xs={24} md={14} lg={16}>
-          {/* Header + nút quay lại */}
-          <Space
-            direction="vertical"
-            style={{ width: "100%", marginBottom: 8 }}
-          >
-            <Row
-              justify="space-between"
-              align="middle"
-              style={{ marginBottom: 16 }}
-            >
-              <Col>
-                <Title level={3} style={{ marginBottom: 4 }}>
-                  Simple POS – {tableName}
-                </Title>
-                <Text type="secondary">
-                  Chọn món ở danh sách bên trái, giỏ hàng bên phải. Khi sẵn sàng
-                  → bấm "Tạo đơn & Thanh toán".
-                </Text>
-              </Col>
-              <Col>
-                <Button
-                  type="default"
-                  variant="outlined"
-                  onClick={() => navigate("/pos/simple")}
-                >
-                  ← Về chọn bàn Simple POS
-                </Button>
-              </Col>
-            </Row>
-
-            {/* Filter: category + search */}
-            <Row justify="space-between" align="middle">
-              <Col>
-                <Segmented
-                  options={[
-                    { label: "Tất cả", value: "ALL" },
-                    ...categoryOptions.map((name) => ({
-                      label: name,
-                      value: name,
-                    })),
-                  ]}
-                  value={selectedCategory}
-                  onChange={setSelectedCategory}
-                />
-              </Col>
-              <Col>
-                <Input
-                  placeholder="Tìm món theo tên..."
-                  allowClear
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                  style={{ width: 220 }}
-                />
-              </Col>
-            </Row>
-          </Space>
-
-          {/* Danh sách món */}
-          {filteredDishes.length === 0 ? (
-            <Empty
-              description="Không có món nào phù hợp"
-              style={{ marginTop: 24 }}
-            />
-          ) : (
-            <Row gutter={[12, 12]} style={{ marginTop: 8 }}>
-              {filteredDishes.map((dish) => (
-                <Col key={dish.id} xs={12} sm={8} md={8} lg={6}>
-                  <Card
-                    variant="outlined"
-                    hoverable
-                    style={{ height: "100%" }}
-                    onClick={() => handleAddDishToCart(dish)}
-                  >
-                    <Space direction="vertical" style={{ width: "100%" }}>
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          minHeight: 40,
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        {dish.name}
-                      </div>
-
-                      <div style={{ fontSize: 14 }}>
-                        <Text strong>
-                          {Number(dish.price ?? 0).toLocaleString("vi-VN")} đ
-                        </Text>
-                      </div>
-
-                      <Button
-                        type="primary"
-                        block
-                        variant="solid"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddDishToCart(dish);
-                        }}
-                      >
-                        Thêm vào giỏ
-                      </Button>
-                    </Space>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-          )}
-        </Col>
-
-        {/* =====================================================================
-            CỘT PHẢI – GIỎ HÀNG
-        ===================================================================== */}
-        <Col xs={24} md={10} lg={8}>
-          <Card
-            title={`Giỏ hàng – ${tableName}`}
-            variant="outlined"
-            extra={
-              <Text strong>
-                Tổng: {totalAmount.toLocaleString("vi-VN")} đ
-              </Text>
-            }
-          >
-            {!cartItems.length && (
-              <Empty
-                description="Chưa có món nào trong giỏ"
-                style={{ margin: "16px 0" }}
-              />
-            )}
-
-            <Space
-              direction="vertical"
-              style={{ width: "100%" }}
-              size={8}
-            >
-              {cartItems.map((item) => (
-                <Card
-                  key={item.lineId}
-                  size="small"
-                  variant="outlined"
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: 4,
-                    }}
-                  >
-                    <div style={{ fontWeight: 500 }}>{item.name}</div>
-                    <div style={{ textAlign: "right" }}>
-                      <Text>
-                        {Number(item.price).toLocaleString("vi-VN")} đ
-                      </Text>
-                    </div>
-                  </div>
-
-                  {/* Số lượng + nút xoá */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginBottom: 4,
-                    }}
-                  >
-                    <span>Số lượng:</span>
-                    <InputNumber
-                      min={0}
-                      value={item.quantity}
-                      onChange={(value) =>
-                        handleChangeQuantity(
-                          item.lineId,
-                          Number(value || 0)
-                        )
-                      }
-                    />
-                    <Button
-                      danger
-                      size="small"
-                      onClick={() => handleRemoveCartItem(item.lineId)}
-                    >
-                      Xoá
-                    </Button>
-                  </div>
-
-                  {/* Ghi chú món */}
-                  <Input.TextArea
-                    rows={1}
-                    placeholder="Ghi chú món (nếu có)..."
-                    value={item.note}
-                    onChange={(e) =>
-                      handleChangeNote(item.lineId, e.target.value)
-                    }
-                  />
-                </Card>
-              ))}
-            </Space>
-
-            {/* Nút tạo đơn & thanh toán */}
-            <Button
-              type="primary"
-              block
-              style={{ marginTop: 16 }}
-              variant="solid"
-              onClick={handleCreateOrderAndPay}
-              disabled={!cartItems.length}
-              loading={creatingOrder}
-            >
-              Tạo đơn & Thanh toán
-            </Button>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* PaymentModal – dùng lại component hiện tại */}
-      <PaymentModal
-        open={paymentModalOpen}
-        onClose={handleClosePaymentModal}
-        order={currentOrder}
-        // Simple POS không cần reloadOrders → truyền null/undefined
-        reloadOrders={null}
-        // ✅ EPIC 2: POS Simple dùng chung PaymentModal nhưng flow riêng
-        contextMode={APP_MODE.POS_SIMPLE}
-        onPaidSuccess={handlePaidSuccess}
+    <>
+      <PosOrderLayout
+        tableName={tableName}
+        isTakeAway={tableId == null}
+        categories={categoryOptions}
+        selectedCategory={selectedCategory}
+        onSelectCategory={setSelectedCategory}
+        dishes={filteredDishes}
+        cartItems={cartItems}
+        totalAmount={totalAmount}
+        onAddDish={handleAddDishToCart}
+        onCheckout={handleCreateOrderAndPay}
+        onChangeSimpleQty={handleChangeSimpleQty}
+        onRemoveSimpleItem={handleRemoveCartItem}
       />
-    </MotionWrapper>
+
+      {/* ================= PAYMENT MODAL – SIMPLE POS ================= */}
+      {currentOrder && (
+        <PaymentModal
+          open={paymentModalOpen}
+          order={currentOrder}
+          mode={APP_MODE.POS_SIMPLE}
+          enableLoyalty={enableMemberInPayment}
+          onClose={handleClosePaymentModal}
+          onPaidSuccess={handlePaidSuccess}
+        />
+      )}
+    </>
   );
 }
